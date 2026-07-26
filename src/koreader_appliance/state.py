@@ -15,7 +15,7 @@ def require_installable(device: Device, allow_untested: bool = False) -> None:
             f"cannot apply {device.id}: Kindle and other non-Kobo readers need "
             "a vendor adapter and jailbreak (KUAL/MRPI), not KoboRoot.tgz"
         )
-    if device.status != "hardware-beta" and not allow_untested:
+    if device.status not in ("hardware-beta", "production") and not allow_untested:
         raise SafetyError(
             f"{device.id} is untested on hardware (status: {device.status}); "
             "pass --allow-untested to permit staging"

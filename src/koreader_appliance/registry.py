@@ -13,15 +13,29 @@ def default_device_directory() -> Path:
         return require_directory(Path(configured), "device directory")
 
     for parent in Path(__file__).resolve().parents:
-        candidate = parent / "devices"
+        candidate = parent / "adapters"
         if candidate.is_dir():
             return candidate
-    candidate = Path.cwd() / "devices"
+    candidate = Path.cwd() / "adapters"
     if candidate.is_dir():
         return candidate.resolve()
     raise SafetyError(
-        "could not locate device manifests; set KOREADER_APPLIANCE_DEVICES"
+        "could not locate device adapters; set KOREADER_APPLIANCE_DEVICES"
     )
+
+
+def _manifest_paths(directory: Path) -> list[Path]:
+    direct = [
+        path for path in sorted(directory.glob("*.toml"))
+        if not path.name.startswith("_")
+    ]
+    if direct:
+        return direct
+    return [
+        path
+        for path in sorted(directory.glob("*/device.toml"))
+        if not path.parent.name.startswith("_")
+    ]
 
 
 class Registry:
@@ -31,8 +45,7 @@ class Registry:
         )
         self._devices = {
             device.id: device
-            for path in sorted(self.directory.glob("*.toml"))
-            if not path.name.startswith("_")
+            for path in _manifest_paths(self.directory)
             for device in [Device.from_toml(path)]
         }
         if not self._devices:

@@ -11,7 +11,7 @@ REPOSITORY = Path(__file__).resolve().parents[1]
 
 class RegistryTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.registry = Registry(REPOSITORY / "devices")
+        self.registry = Registry(REPOSITORY / "adapters")
 
     def test_detects_clara_bw_by_storage_and_product_marker(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

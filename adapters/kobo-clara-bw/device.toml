@@ -17,6 +17,7 @@ recovery_marker = ".kobo/KOReader-autostart-disabled"
 [ssh]
 user = "root"
 port = 22
+hostname = "clara"
 authorized_keys_paths = [
   ".ssh/authorized_keys",
   "mnt/onboard/.adds/koreader/settings/SSH/authorized_keys",

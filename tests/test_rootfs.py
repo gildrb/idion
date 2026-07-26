@@ -22,11 +22,11 @@ class RootPackageTests(unittest.TestCase):
             tool.write_text("#!/bin/sh\nexit 0\n")
             tool.chmod(0o755)
             output = root / "output"
-            device = Registry(REPOSITORY / "devices").get("kobo-clara-bw")
+            device = Registry(REPOSITORY / "adapters").get("kobo-clara-bw")
 
             result = build_kobo_root(
                 device=device,
-                adapter_rootfs=REPOSITORY / "adapters" / device.id / "rootfs",
+                adapter_rootfs=REPOSITORY / "adapters" / "_kobo-common" / "rootfs",
                 authorized_key=public_key,
                 scp_binary=tool,
                 sftp_server_binary=tool,

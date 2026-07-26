@@ -12,7 +12,9 @@ Non-Kobo devices are detection and backup scaffolds until their vendor boot
 mechanism is implemented. In particular, Kindle requires a jailbreak plus a
 KUAL/MRPI adapter; this project will not send a Kobo `KoboRoot.tgz` to it.
 
-Copy `devices/_template.toml` and give the adapter a unique ID.
+Copy `adapters/_template/device.toml` into `adapters/<device-id>/device.toml`
+and give the adapter a unique ID. Keep its profiles, README, and any model
+specific rootfs in that same directory.
 
 ## Define before coding
 
@@ -21,6 +23,9 @@ Copy `devices/_template.toml` and give the adapter a unique ID.
 2. Document the vendor boot chain and smallest required proprietary component.
 3. Define cable recovery and a storage-visible disable marker.
 4. Record the real SSH account home from the device account database.
+
+Shared Kobo platform files belong in `adapters/_kobo-common/`. Put only
+model-specific files in the adapter directory.
 
 ## Implement after recovery exists
 

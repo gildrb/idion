@@ -1,7 +1,8 @@
 # Architecture
 
 Put portable behavior in `src/koreader_appliance` and hardware behavior in one
-adapter directory.
+directory per adapter under `adapters/`. Shared Kobo platform files belong in
+`adapters/_kobo-common/`.
 
 ```text
 CLI
@@ -47,4 +48,4 @@ Remote tests can prove processes, hashes, transfers, watchdog recovery, memory,
 storage, and battery telemetry. They cannot prove screen flicker, light color,
 cover behavior, button feel, or subjective page-turn latency.
 
-Next: open `devices/_template.toml` before adding a model.
+Next: open `adapters/_template/device.toml` before adding a model.
