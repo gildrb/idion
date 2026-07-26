@@ -15,9 +15,13 @@ def require_installable(device: Device, allow_unverified: bool = False) -> None:
             f"cannot apply {device.id}: Kindle and other non-Kobo readers need "
             "a vendor adapter and jailbreak (KUAL/MRPI), not KoboRoot.tgz"
         )
-    if device.status == "unverified" and not allow_unverified:
+    if device.status == "blocked":
         raise SafetyError(
-            f"{device.id} is unverified on hardware (status: {device.status}); "
+            f"{device.id} is blocked; installation is not available for this adapter"
+        )
+    if device.status != "verified" and not allow_unverified:
+        raise SafetyError(
+            f"{device.id} is not verified on hardware (status: {device.status}); "
             "pass --allow-unverified to permit staging"
         )
 

@@ -14,7 +14,7 @@ from koreader_appliance.model import Device
 from koreader_appliance.manifest import ApplianceManifest
 from koreader_appliance.registry import Registry
 from koreader_appliance.safety import SafetyError
-from koreader_appliance.state import apply, plan
+from koreader_appliance.state import apply, plan, require_installable
 
 
 REPOSITORY = Path(__file__).resolve().parents[1]
@@ -165,7 +165,7 @@ class ManifestTests(unittest.TestCase):
                 source=device.source,
             )
             mount = Path(temporary.name) / "reader"
-            with self.assertRaisesRegex(SafetyError, "unverified on hardware"):
+            with self.assertRaisesRegex(SafetyError, "not verified on hardware"):
                 apply(mount, manifest, unverified)
             result = apply(mount, manifest, unverified, allow_unverified=True)
             self.assertTrue(all(step["status"] == "ok" for step in result))
@@ -180,6 +180,18 @@ class ManifestTests(unittest.TestCase):
             self.assertTrue(all(step["status"] == "ok" for step in result))
         finally:
             temporary.cleanup()
+
+    def test_blocked_kobo_is_refused_even_with_override(self) -> None:
+        device = Registry(REPOSITORY / "adapters").get("kobo-clara-bw")
+        blocked = replace(device, status="blocked")
+        with self.assertRaisesRegex(SafetyError, "blocked"):
+            require_installable(blocked, allow_unverified=True)
+
+    def test_unknown_status_requires_override(self) -> None:
+        device = Registry(REPOSITORY / "adapters").get("kobo-clara-bw")
+        unknown = replace(device, status="future-status")
+        with self.assertRaisesRegex(SafetyError, "not verified"):
+            require_installable(unknown)
 
     def test_apply_refuses_kindle_vendor_boot_chain(self) -> None:
         temporary, manifest, _ = self._fixture()
