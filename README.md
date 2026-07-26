@@ -2,12 +2,9 @@
 
 Run `koreader-appliance devices` to see which readers are safe to use now.
 
-KOReader Appliance builds reproducible KOReader-first readers with verified
-backups, key-only SSH, recovery paths, format profiles, and runtime evidence.
-If you do not want your reader to be an active advertisement surface for its
-vendor, this project describes a user-controlled setup: vendor store, sync,
-and analytics endpoints are not part of the daily path. Inputs are backed up
-and pinned, and the resulting files remain on the reader under your control.
+KOReader Appliance builds a pinned KOReader install on a mounted e-reader after
+a verified backup. It configures key-only SSH, uses additive staging, and
+provides a recovery marker.
 The daily path is small:
 
 ```text
