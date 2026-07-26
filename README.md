@@ -45,23 +45,7 @@ chains, display drivers, or recovery mechanisms work like Kobo.
    python -m pip install -e .
    ```
 
-3. Copy the example manifest to
-   `~/.config/koreader-appliance/<device>.toml`, then fill in the paths and
-   hashes. Download the KOReader Kobo archive from
-   [KOReader's releases](https://github.com/koreader/koreader/releases), and
-   hash the archive and root package locally:
-
-   ```sh
-   mkdir -p ~/.config/koreader-appliance
-   cp adapters/kobo-clara-bw/profiles/appliance.toml.example \
-     ~/.config/koreader-appliance/kobo-libra-2.toml
-   sha256sum ~/Downloads/koreader-kobo.zip ~/ReaderBuilds/libra/KoboRoot.tgz
-   ```
-
-   Put those 64-character values in `[koreader].sha256` and
-   `[root_package].sha256`, and set `device` plus the backup manifest path.
-
-4. Build the root package before setup:
+3. Build the root package before setup:
 
    ```sh
    koreader-appliance build-kobo-root \
@@ -76,6 +60,22 @@ chains, display drivers, or recovery mechanisms work like Kobo.
    The repository does not provide these target-compatible ARM binaries.
    Obtain them from your own ARM toolchain or another source you trust. This
    build is for key-only SSH and is required by the current manifest flow.
+
+4. Copy the example manifest to
+   `~/.config/koreader-appliance/<device>.toml`, then fill in the paths and
+   hashes. Download the KOReader Kobo archive from
+   [KOReader's releases](https://github.com/koreader/koreader/releases), and
+   hash the archive and generated root package locally:
+
+   ```sh
+   mkdir -p ~/.config/koreader-appliance
+   cp adapters/kobo-clara-bw/profiles/appliance.toml.example \
+     ~/.config/koreader-appliance/kobo-libra-2.toml
+   sha256sum ~/Downloads/koreader-kobo.zip ~/ReaderBuilds/libra/KoboRoot.tgz
+   ```
+
+   Put those 64-character values in `[koreader].sha256` and
+   `[root_package].sha256`, and set `device` plus the backup manifest path.
 
 5. Run the one-shot setup. It finds a matching common mount automatically; pass
    the mount path explicitly if needed:
