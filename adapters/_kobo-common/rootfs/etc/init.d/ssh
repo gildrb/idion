@@ -2,7 +2,7 @@
 
 # Give the reader a stable network identity before OpenSSH starts. rcS has
 # already initialized networking and set its temporary stock hostname here.
-/bin/hostname clara
+/bin/hostname @HOSTNAME@
 
 SSH_ENABLED_FILE=/mnt/onboard/.kobo/ssh-enabled
 SSH_DISABLED_FILE=/mnt/onboard/.kobo/ssh-disabled

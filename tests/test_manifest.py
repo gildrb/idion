@@ -1,5 +1,6 @@
 from hashlib import sha256
 from contextlib import redirect_stdout
+from dataclasses import replace
 import io
 from pathlib import Path
 import shutil
@@ -89,7 +90,7 @@ class ManifestTests(unittest.TestCase):
         (mount / ".kobo").mkdir(parents=True)
         (mount / ".kobo" / "version").write_text("P365\n")
         backup_destination = root / "backup"
-        device = Registry(REPOSITORY / "devices").detect(mount)
+        device = Registry(REPOSITORY / "adapters").detect(mount)
         create_backup(mount, backup_destination, device)
 
         archive = root / "reader.zip"
@@ -171,10 +172,19 @@ class ManifestTests(unittest.TestCase):
         finally:
             temporary.cleanup()
 
+    def test_production_status_does_not_require_override(self) -> None:
+        temporary, manifest, device = self._fixture()
+        try:
+            trusted = replace(device, status="production")
+            result = apply(Path(temporary.name) / "reader", manifest, trusted)
+            self.assertTrue(all(step["status"] == "ok" for step in result))
+        finally:
+            temporary.cleanup()
+
     def test_apply_refuses_kindle_vendor_boot_chain(self) -> None:
         temporary, manifest, _ = self._fixture()
         try:
-            kindle = Registry(REPOSITORY / "devices").get("kindle")
+            kindle = Registry(REPOSITORY / "adapters").get("kindle")
             with self.assertRaisesRegex(SafetyError, "KUAL/MRPI"):
                 apply(Path(temporary.name) / "reader", manifest, kindle)
         finally:

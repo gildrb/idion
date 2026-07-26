@@ -24,7 +24,7 @@ class BackupTests(unittest.TestCase):
             (mount / ".Spotlight-V100").mkdir()
             (mount / ".Spotlight-V100" / "index").write_bytes(b"transient")
 
-            device = Registry(REPOSITORY / "devices").detect(mount)
+            device = Registry(REPOSITORY / "adapters").detect(mount)
             destination = root / "backup"
             manifest = create_backup(mount, destination, device)
 
@@ -41,7 +41,7 @@ class BackupTests(unittest.TestCase):
             mount = Path(temporary)
             (mount / ".kobo").mkdir()
             (mount / ".kobo" / "version").write_text("P365\n")
-            device = Registry(REPOSITORY / "devices").detect(mount)
+            device = Registry(REPOSITORY / "adapters").detect(mount)
             with self.assertRaises(SafetyError):
                 create_backup(mount, mount / "backup", device)
 

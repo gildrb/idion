@@ -27,6 +27,7 @@ class SSH:
     user: str
     port: int
     authorized_keys_paths: tuple[str, ...]
+    hostname: str
 
 
 @dataclass(frozen=True)
@@ -77,6 +78,11 @@ class Device:
                     port=int(ssh_data["port"]),
                     authorized_keys_paths=tuple(
                         map(str, ssh_data["authorized_keys_paths"])
+                    ),
+                    hostname=str(
+                        ssh_data.get(
+                            "hostname", str(data["id"]).removeprefix("kobo-")
+                        )
                     ),
                 ),
                 acceptance=Acceptance(

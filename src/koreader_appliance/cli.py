@@ -75,7 +75,7 @@ def build_root_command(arguments: argparse.Namespace) -> None:
         )
     adapter_rootfs = repository / "adapters" / device.id / "rootfs"
     if not adapter_rootfs.is_dir():
-        adapter_rootfs = repository / "adapters" / "kobo-clara-bw" / "rootfs"
+        adapter_rootfs = repository / "adapters" / "_kobo-common" / "rootfs"
     _json(
         build_kobo_root(
             device=device,
@@ -96,7 +96,7 @@ def stage_command(arguments: argparse.Namespace) -> None:
     settings = arguments.settings
     if settings is None:
         repository = Path(__file__).resolve().parents[2]
-        candidate = repository / "profiles" / device.id / "base.lua"
+        candidate = repository / "adapters" / device.id / "profiles" / "base.lua"
         settings = candidate if candidate.is_file() else None
     _json(
         stage_koreader(
@@ -214,8 +214,10 @@ def setup_command(arguments: argparse.Namespace) -> None:
     )
 
 
-def _find_mount(registry: Registry, device) -> Path:
-    candidates = [
+def _find_mount(
+    registry: Registry, device, candidates: list[Path] | None = None
+) -> Path:
+    candidates = candidates or [
         Path("/Volumes/KOBOeReader"),
         Path("/media") / getpass.getuser(),
         Path("/run/media") / getpass.getuser(),
@@ -224,7 +226,7 @@ def _find_mount(registry: Registry, device) -> Path:
     for parent in candidates:
         if not parent.is_dir():
             continue
-        paths = [parent] if parent.name == device.id else list(parent.iterdir())
+        paths = [parent] if device.matches(parent) else list(parent.iterdir())
         matches.extend(path for path in paths if path.is_dir() and device.matches(path))
     unique = sorted(set(matches))
     if len(unique) != 1:

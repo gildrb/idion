@@ -24,7 +24,7 @@ class StageTests(unittest.TestCase):
                 output.writestr("koreader/koreader.sh", "#!/bin/sh\n")
             root_package = root / "KoboRoot.tgz"
             root_package.write_bytes(b"root-package")
-            device = Registry(REPOSITORY / "devices").detect(mount)
+            device = Registry(REPOSITORY / "adapters").detect(mount)
 
             result = stage_koreader(mount, archive, root_package, device)
 
@@ -46,7 +46,7 @@ class StageTests(unittest.TestCase):
                 output.writestr("../escape", "bad")
             root_package = root / "KoboRoot.tgz"
             root_package.write_bytes(b"root-package")
-            device = Registry(REPOSITORY / "devices").detect(mount)
+            device = Registry(REPOSITORY / "adapters").detect(mount)
             with self.assertRaises(SafetyError):
                 stage_koreader(mount, archive, root_package, device)
 

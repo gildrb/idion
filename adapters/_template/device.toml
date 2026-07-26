@@ -28,4 +28,3 @@ physical_gates = [
   "bluetooth_remote",
   "battery",
 ]
-
