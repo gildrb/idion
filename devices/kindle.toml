@@ -1,0 +1,23 @@
+id = "kindle"
+name = "Amazon Kindle"
+platform = "kindle"
+status = "framework"
+
+[detection]
+required_paths = ["documents", "system/version.txt"]
+marker_file = ""
+marker_tokens = []
+
+[storage]
+books_root = "documents"
+koreader_root = ".adds/koreader"
+installer_trigger = ""
+recovery_marker = ""
+
+[ssh]
+user = "root"
+port = 22
+authorized_keys_paths = []
+
+[acceptance]
+physical_gates = ["jailbreak", "KUAL-or-MRPI-installation", "display", "battery"]
