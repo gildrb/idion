@@ -6,7 +6,7 @@ computer. It takes a full verified backup before changing the mounted reader.
 A TOML configuration records the input paths and hashes so the same state can
 be reproduced.
 
-## What this does and does not do
+### What this does and does not do
 
 - The setup, backup, build, and staging commands run on your computer.
 - They do not create accounts, upload files, or make network calls.
@@ -14,7 +14,7 @@ be reproduced.
   disable paths.
 - `validate-live` is separate and connects to a reader only when you run it.
 
-## Hardware status
+### Hardware status
 
 The Kobo Clara BW adapter has been tested on a P365 device. The other Kobo
 adapters have verified model markers but no physical hardware test evidence.
@@ -31,7 +31,7 @@ document profiles.
 “Blocked” prevents installation. It does not guess that unrelated boot
 chains, display drivers, or recovery mechanisms work like Kobo.
 
-## Setup
+### Setup
 
 1. Find your device in the table above. Kindle detection and backup work, but
    installation is intentionally refused until a Kindle jailbreak and vendor
@@ -128,7 +128,7 @@ koreader-appliance apply /Volumes/KOBOeReader \
 SHA-256 pins, then performs only additive staging. Re-running it is a no-op.
 Start from `adapters/_kobo-common/profiles/appliance.toml.example`.
 
-## Validate a live reader
+### Validate a live reader
 
 Run live validation after the reader boots and Wi-Fi is manually enabled:
 
@@ -143,7 +143,7 @@ The command checks the pinned client policy, host fingerprint, root login,
 KOReader and watchdog health, installed binary hashes, SFTP, SCP, and additive
 rsync. It does not toggle Wi-Fi, reboot, or claim to see physical hardware.
 
-## Safety boundary
+### Safety boundary
 
 Before installation:
 
