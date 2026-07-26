@@ -13,22 +13,37 @@ power → vendor hardware initialization → KOReader → current book
 ## Current win
 
 The Kobo Clara BW adapter reproduces the responsive P365 migration that runs
-KOReader as the daily interface. The automated core already covers detection,
-hash-verified backup, keyed root-package generation, additive staging,
-recovery markers, pinned SSH configuration, and whole-page manga settings.
+KOReader as the daily interface. Other popular Kobo models have staging
+adapters with verified model markers, but remain untested on physical hardware.
+The automated core covers detection, hash-verified backup, keyed root-package
+generation, additive staging, recovery markers, pinned SSH configuration, and
+whole-page manga settings.
 
 | Adapter | State | Safe action now |
 |---|---|---|
 | Kobo Clara BW (P365) | Hardware beta | Detect, back up, build, and stage |
-| Other Kobo models | Scaffold required | Add and test a model adapter |
-| Kindle, PocketBook, reMarkable, Android | Framework only | Add a vendor-specific boot adapter |
+| Kobo Clara HD (N249) | Staging beta | Same KoboRoot.tgz mechanics; untested, requires `--allow-untested` |
+| Kobo Clara 2E (N506) | Staging beta | Same KoboRoot.tgz mechanics; untested, requires `--allow-untested` |
+| Kobo Clara Colour (N367) | Staging beta | Same KoboRoot.tgz mechanics; untested, requires `--allow-untested` |
+| Kobo Libra H2O (N873) | Staging beta | Same KoboRoot.tgz mechanics; untested, requires `--allow-untested` |
+| Kobo Libra 2 (N418) | Staging beta | Same KoboRoot.tgz mechanics; untested, requires `--allow-untested` |
+| Kobo Libra Colour (N428) | Staging beta | Same KoboRoot.tgz mechanics; untested, requires `--allow-untested` |
+| Kobo Nia (N306) | Staging beta | Same KoboRoot.tgz mechanics; untested, requires `--allow-untested` |
+| Kobo Sage (N778) | Staging beta | Same KoboRoot.tgz mechanics; untested, requires `--allow-untested` |
+| Kobo Elipsa 2E (N605) | Staging beta | Same KoboRoot.tgz mechanics; untested, requires `--allow-untested` |
+| Kobo Forma (N782) | Staging beta | Same KoboRoot.tgz mechanics; untested, requires `--allow-untested` |
+| Kindle | Framework only | Detect and back up only; jailbreak and KUAL/MRPI adapter required |
 
 “Framework only” blocks installation. It does not guess that unrelated boot
 chains, display drivers, or recovery mechanisms work like Kobo.
 
 ## First 10 minutes
 
-1. Create the environment.
+1. Find your device in the table above. Kindle detection and backup work, but
+   installation is intentionally refused until a Kindle jailbreak and vendor
+   adapter exist.
+
+2. Create the environment.
 
    ```sh
    python3 -m venv .venv
@@ -36,34 +51,44 @@ chains, display drivers, or recovery mechanisms work like Kobo.
    python -m pip install -e .
    ```
 
-2. Put a manifest at `~/.config/koreader-appliance/kobo-clara-bw.toml`,
-   starting from `profiles/kobo-clara-bw/appliance.toml.example`. Then run the
-   complete safe setup (pass the mount explicitly when it is not auto-detected):
+3. Copy the example manifest to
+   `~/.config/koreader-appliance/<device>.toml`, then fill in the paths and
+   hashes. Download the Kobo archive from
+   [KOReader's releases](https://github.com/koreader/koreader/releases), and
+   hash both inputs locally:
 
    ```sh
-   koreader-appliance kobo-clara-bw /Volumes/KOBOeReader --yes
+   mkdir -p ~/.config/koreader-appliance
+   cp profiles/kobo-clara-bw/appliance.toml.example \
+     ~/.config/koreader-appliance/kobo-libra-2.toml
+   sha256sum ~/Downloads/koreader-kobo.zip ~/ReaderBuilds/libra/KoboRoot.tgz
    ```
 
-   This detects the reader, creates or verifies the backup named by the
-   manifest, and applies its pinned desired state. The mutating step requires
+   Put those 64-character values in `[koreader].sha256` and
+   `[root_package].sha256`, and set `device` plus the backup manifest path.
+
+4. Run the one-shot setup. It finds a matching common mount automatically; pass
+   the mount path explicitly if needed:
+
+   ```sh
+   koreader-appliance <device> --yes
+   koreader-appliance kobo-libra-2 /Volumes/KOBOeReader --yes --allow-untested
+   ```
+
+   Setup detects the reader, creates or verifies the backup named by the
+   manifest, verifies both pins, and applies the desired state. Untested Kobo
+   adapters require `--allow-untested`; the mutating step always requires
    `--yes`.
 
-3. Detect the mounted reader without changing it.
+5. To inspect a reader without changing it, plan first:
 
    ```sh
-   koreader-appliance detect /Volumes/KOBOeReader
+   koreader-appliance plan /Volumes/KOBOeReader \
+     --manifest ~/.config/koreader-appliance/kobo-libra-2.toml
    ```
 
-4. Create and hash the complete accessible-storage backup.
-
-   ```sh
-   koreader-appliance backup \
-     /Volumes/KOBOeReader \
-     ~/ReaderBackups/clara-before
-   ```
-
-5. Keep `~/ReaderBackups/clara-before/backup-manifest.json`. Staging refuses
-   to proceed without that matching, hash-valid manifest.
+The setup flow keeps the backup outside the reader and never deletes files,
+reboots, ejects, or changes Wi-Fi.
 
 ## Build without committing secrets
 
@@ -82,6 +107,9 @@ koreader-appliance build-kobo-root \
 This takes about 2 seconds after the three verified ARM binaries exist. The
 command creates a unique host key, embeds its private half only in
 `KoboRoot.tgz`, and exports the public fingerprint beside the installer.
+Staging-beta Kobo models reuse the Clara rootfs template until a
+model-specific rootfs is validated; their host identity remains pinned by the
+generated key and device build manifest.
 
 ## Stage without activating
 

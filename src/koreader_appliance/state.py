@@ -9,6 +9,19 @@ from .safety import SafetyError, require_directory, under
 from .stage import stage_koreader
 
 
+def require_installable(device: Device, allow_untested: bool = False) -> None:
+    if device.platform != "kobo":
+        raise SafetyError(
+            f"cannot apply {device.id}: Kindle and other non-Kobo readers need "
+            "a vendor adapter and jailbreak (KUAL/MRPI), not KoboRoot.tgz"
+        )
+    if device.status != "hardware-beta" and not allow_untested:
+        raise SafetyError(
+            f"{device.id} is untested on hardware (status: {device.status}); "
+            "pass --allow-untested to permit staging"
+        )
+
+
 def _step(action: str, target: Path, status: str) -> dict[str, str]:
     return {"action": action, "target": str(target), "status": status}
 
@@ -18,10 +31,13 @@ def plan(
 ) -> list[dict[str, str]]:
     mount = require_directory(mount, "reader mount")
     koreader_root = under(mount, device.storage.koreader_root)
-    trigger = under(mount, device.storage.installer_trigger)
     settings = koreader_root / "settings.reader.lua.pending"
     books_root = under(mount, device.storage.books_root)
-    ssh_marker = under(mount, ".kobo/ssh-enabled")
+    trigger = (
+        under(mount, device.storage.installer_trigger)
+        if device.storage.installer_trigger
+        else None
+    )
 
     steps = [
         _step(
@@ -29,15 +45,19 @@ def plan(
             koreader_root,
             "ok" if (koreader_root / "reader.lua").is_file() else "pending",
         ),
-        _step(
-            "installer-trigger",
-            trigger,
-            "ok"
-            if trigger.is_file()
-            and ApplianceManifest.hash_file(trigger) == manifest.root_package.sha256
-            else "pending",
-        ),
     ]
+    if trigger is not None:
+        steps.append(
+            _step(
+                "installer-trigger",
+                trigger,
+                "ok"
+                if trigger.is_file()
+                and ApplianceManifest.hash_file(trigger)
+                == manifest.root_package.sha256
+                else "pending",
+            )
+        )
     if manifest.settings is not None:
         steps.append(
             _step(
@@ -55,6 +75,7 @@ def plan(
         for folder in manifest.library.folders
     )
     if device.platform == "kobo":
+        ssh_marker = under(mount, ".kobo/ssh-enabled")
         steps.append(
             _step(
                 "ssh-enabled-marker",
@@ -76,9 +97,13 @@ def _verify_pin(path: Path, expected: str, label: str) -> None:
 
 
 def apply(
-    mount: Path, manifest: ApplianceManifest, device: Device
+    mount: Path,
+    manifest: ApplianceManifest,
+    device: Device,
+    allow_untested: bool = False,
 ) -> list[dict[str, str]]:
     mount = require_directory(mount, "reader mount")
+    require_installable(device, allow_untested)
     if not device.matches(mount):
         raise SafetyError(f"{mount} does not match adapter {device.id}")
     if manifest.device != device.id:

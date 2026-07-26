@@ -9,6 +9,7 @@ import zipfile
 
 from koreader_appliance.backup import create_backup
 from koreader_appliance.cli import main
+from koreader_appliance.model import Device
 from koreader_appliance.manifest import ApplianceManifest
 from koreader_appliance.registry import Registry
 from koreader_appliance.safety import SafetyError
@@ -145,5 +146,36 @@ class ManifestTests(unittest.TestCase):
                 )
             self.assertEqual(result, 0)
             self.assertTrue((root / "backup" / "backup-manifest.json").is_file())
+        finally:
+            temporary.cleanup()
+
+    def test_untested_gate_requires_explicit_override(self) -> None:
+        temporary, manifest, device = self._fixture()
+        try:
+            untested = Device(
+                id=device.id,
+                name=device.name,
+                platform=device.platform,
+                status="staging-beta",
+                detection=device.detection,
+                storage=device.storage,
+                ssh=device.ssh,
+                acceptance=device.acceptance,
+                source=device.source,
+            )
+            mount = Path(temporary.name) / "reader"
+            with self.assertRaisesRegex(SafetyError, "untested on hardware"):
+                apply(mount, manifest, untested)
+            result = apply(mount, manifest, untested, allow_untested=True)
+            self.assertTrue(all(step["status"] == "ok" for step in result))
+        finally:
+            temporary.cleanup()
+
+    def test_apply_refuses_kindle_vendor_boot_chain(self) -> None:
+        temporary, manifest, _ = self._fixture()
+        try:
+            kindle = Registry(REPOSITORY / "devices").get("kindle")
+            with self.assertRaisesRegex(SafetyError, "KUAL/MRPI"):
+                apply(Path(temporary.name) / "reader", manifest, kindle)
         finally:
             temporary.cleanup()

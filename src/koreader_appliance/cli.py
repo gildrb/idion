@@ -16,7 +16,11 @@ from .safety import SafetyError
 from .ssh import render_host_config
 from .stage import stage_koreader
 from .manifest import ApplianceManifest
-from .state import apply as apply_manifest, plan as plan_manifest
+from .state import (
+    apply as apply_manifest,
+    plan as plan_manifest,
+    require_installable,
+)
 from .validate import validate_live
 
 
@@ -64,7 +68,14 @@ def build_root_command(arguments: argparse.Namespace) -> None:
     registry = _registry(arguments)
     device = registry.get(arguments.device)
     repository = Path(__file__).resolve().parents[2]
+    if device.platform != "kobo":
+        raise SafetyError(
+            f"Kobo root builder cannot build {device.id}: Kindle and other "
+            "non-Kobo readers need a vendor adapter and jailbreak (KUAL/MRPI)"
+        )
     adapter_rootfs = repository / "adapters" / device.id / "rootfs"
+    if not adapter_rootfs.is_dir():
+        adapter_rootfs = repository / "adapters" / "kobo-clara-bw" / "rootfs"
     _json(
         build_kobo_root(
             device=device,
@@ -80,6 +91,7 @@ def build_root_command(arguments: argparse.Namespace) -> None:
 
 def stage_command(arguments: argparse.Namespace) -> None:
     device = _device(arguments)
+    require_installable(device, arguments.allow_untested)
     verify_backup_manifest(arguments.backup_manifest, device, arguments.mount)
     settings = arguments.settings
     if settings is None:
@@ -141,7 +153,14 @@ def manifest_command(arguments: argparse.Namespace) -> None:
     if arguments.command == "apply":
         if not arguments.yes:
             raise SafetyError("appliance apply requires --yes")
-        _json(apply_manifest(arguments.mount, manifest, device))
+        _json(
+            apply_manifest(
+                arguments.mount,
+                manifest,
+                device,
+                arguments.allow_untested,
+            )
+        )
     else:
         _json(plan_manifest(arguments.mount, manifest, device))
 
@@ -160,6 +179,7 @@ def setup_command(arguments: argparse.Namespace) -> None:
         raise SafetyError(
             f"appliance manifest targets {manifest.device}, requested {device.id}"
         )
+    require_installable(device, arguments.allow_untested)
     mount = arguments.mount or _find_mount(registry, device)
     detected = registry.detect(mount)
     if detected.id != device.id:
@@ -187,7 +207,9 @@ def setup_command(arguments: argparse.Namespace) -> None:
                 "file_count": backup_summary["file_count"],
                 "total_bytes": backup_summary["total_bytes"],
             },
-            "state": apply_manifest(mount, manifest, device),
+            "state": apply_manifest(
+                mount, manifest, device, arguments.allow_untested
+            ),
         }
     )
 
@@ -256,6 +278,7 @@ def parser() -> argparse.ArgumentParser:
     stage.add_argument("--root-package", type=Path, required=True)
     stage.add_argument("--backup-manifest", type=Path, required=True)
     stage.add_argument("--settings", type=Path)
+    stage.add_argument("--allow-untested", action="store_true")
     stage.set_defaults(handler=stage_command)
 
     recovery = commands.add_parser(
@@ -306,6 +329,7 @@ def parser() -> argparse.ArgumentParser:
         manifest_command_parser.add_argument("mount", type=Path)
         manifest_command_parser.add_argument("--manifest", type=Path, required=True)
         manifest_command_parser.add_argument("--yes", action="store_true")
+        manifest_command_parser.add_argument("--allow-untested", action="store_true")
         manifest_command_parser.set_defaults(handler=manifest_command)
 
     setup = commands.add_parser(
@@ -319,6 +343,7 @@ def parser() -> argparse.ArgumentParser:
         default=None,
     )
     setup.add_argument("--yes", action="store_true")
+    setup.add_argument("--allow-untested", action="store_true")
     setup.set_defaults(handler=setup_command)
     return result
 
