@@ -1,0 +1,18 @@
+device = "kobo-clara-bw"
+
+[koreader]
+archive = "/path/to/koreader-kobo.zip"
+sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+
+[root_package]
+path = "/path/to/KoboRoot.tgz"
+sha256 = "1111111111111111111111111111111111111111111111111111111111111111"
+
+[backup]
+manifest = "/path/to/ReaderBackups/clara-before/backup-manifest.json"
+
+[settings]
+profile = "base.lua"
+
+[library]
+folders = ["Programming", "Linux", "Math", "Papers", "Manuals"]

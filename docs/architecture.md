@@ -8,6 +8,7 @@ CLI
  ├─ registry and detection
  ├─ verified storage backup
  ├─ safe bundle staging
+ ├─ declarative appliance state planning and apply
  ├─ generated keys and root-package builder
  ├─ document profiles
  └─ evidence collection
@@ -47,4 +48,3 @@ storage, and battery telemetry. They cannot prove screen flicker, light color,
 cover behavior, button feel, or subjective page-turn latency.
 
 Next: open `devices/_template.toml` before adding a model.
-

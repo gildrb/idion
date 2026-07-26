@@ -36,13 +36,25 @@ chains, display drivers, or recovery mechanisms work like Kobo.
    python -m pip install -e .
    ```
 
-2. Detect the mounted reader without changing it.
+2. Put a manifest at `~/.config/koreader-appliance/kobo-clara-bw.toml`,
+   starting from `profiles/kobo-clara-bw/appliance.toml.example`. Then run the
+   complete safe setup (pass the mount explicitly when it is not auto-detected):
+
+   ```sh
+   koreader-appliance kobo-clara-bw /Volumes/KOBOeReader --yes
+   ```
+
+   This detects the reader, creates or verifies the backup named by the
+   manifest, and applies its pinned desired state. The mutating step requires
+   `--yes`.
+
+3. Detect the mounted reader without changing it.
 
    ```sh
    koreader-appliance detect /Volumes/KOBOeReader
    ```
 
-3. Create and hash the complete accessible-storage backup.
+4. Create and hash the complete accessible-storage backup.
 
    ```sh
    koreader-appliance backup \
@@ -50,7 +62,7 @@ chains, display drivers, or recovery mechanisms work like Kobo.
      ~/ReaderBackups/clara-before
    ```
 
-4. Keep `~/ReaderBackups/clara-before/backup-manifest.json`. Staging refuses
+5. Keep `~/ReaderBackups/clara-before/backup-manifest.json`. Staging refuses
    to proceed without that matching, hash-valid manifest.
 
 ## Build without committing secrets
@@ -85,6 +97,25 @@ koreader-appliance stage /Volumes/KOBOeReader \
 Staging is additive. It creates the folder library, places new settings under
 `settings.reader.lua.pending`, and does not eject, reboot, delete, or toggle
 Wi-Fi. Kobo activation starts only after an explicit safe eject.
+
+## Declarative appliance manifest
+
+For a repeatable desired state, keep the archive and generated root package
+outside the checkout and describe their exact hashes in a TOML manifest. The
+backup manifest is required, so applying remains behind the same verified
+backup gate as manual staging:
+
+```sh
+koreader-appliance plan /Volumes/KOBOeReader \
+  --manifest profiles/kobo-clara-bw/appliance.toml
+koreader-appliance apply /Volumes/KOBOeReader \
+  --manifest profiles/kobo-clara-bw/appliance.toml --yes
+```
+
+`plan` is read-only. `apply` detects the adapter, verifies the backup and both
+SHA-256 pins, then performs only additive staging. Re-running it is a no-op;
+it never deletes files or changes Wi-Fi. Start from
+`profiles/kobo-clara-bw/appliance.toml.example`.
 
 ## Prove the live result
 
