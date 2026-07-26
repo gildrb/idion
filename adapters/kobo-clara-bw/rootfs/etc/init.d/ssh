@@ -1,0 +1,45 @@
+#!/bin/sh
+
+# Give the reader a stable network identity before OpenSSH starts. rcS has
+# already initialized networking and set its temporary stock hostname here.
+/bin/hostname clara
+
+SSH_ENABLED_FILE=/mnt/onboard/.kobo/ssh-enabled
+SSH_DISABLED_FILE=/mnt/onboard/.kobo/ssh-disabled
+PASS_SET=/.login_pass_set
+
+if [ -e "${SSH_ENABLED_FILE}" ]; then
+	echo "Starting sshd"
+else
+	if [ ! -e "${SSH_DISABLED_FILE}" ]; then
+		{
+			echo "To enable ssh:"
+			echo "- Rename this file to ssh-enabled"
+			echo "- Reboot the device"
+			echo "- Connect via: ssh root@<device_ip>"
+		} >"${SSH_DISABLED_FILE}"
+	fi
+	if [ -f ${PASS_SET} ]; then
+		rm ${PASS_SET}
+	fi
+	echo "NOT starting sshd (disabled)"
+	exit 0
+fi
+
+if [ ! -d /var/empty ]; then
+	mkdir -p /var/empty
+	chmod 755 /var/empty                                                                                                     
+fi                                                             
+[ ! -d /dev/pts ] && mkdir -p /dev/pts
+/bin/mount -t devpts none /dev/pts -o mode=0622          
+if ! grep '^sshd:' /etc/group > /dev/null 2>&1; then
+	addgroup --gid 999 sshd                                      
+fi
+
+ROOT_PASS_EXISTS=$(awk -F: '$1 == "root" { print $2 }' /etc/passwd)
+if [ ! -f "${PASS_SET}" ] && [ ! -z "${ROOT_PASS_EXISTS}" ]; then
+	passwd -d root >/dev/null 2>&1
+fi
+
+/usr/sbin/sshd
+/usr/local/Kobo/clara-sshd-watchdog.sh &

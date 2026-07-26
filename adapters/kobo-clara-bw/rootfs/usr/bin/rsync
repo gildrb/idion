@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# Keep the large static binary on the spacious onboard filesystem while
+# preserving the standard remote-shell command expected by rsync clients.
+exec /mnt/onboard/.adds/koreader/rsync "$@"

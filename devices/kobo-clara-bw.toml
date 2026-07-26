@@ -1,0 +1,34 @@
+id = "kobo-clara-bw"
+name = "Kobo Clara BW"
+platform = "kobo"
+status = "hardware-beta"
+
+[detection]
+required_paths = [".kobo", ".kobo/version"]
+marker_file = ".kobo/version"
+marker_tokens = ["P365"]
+
+[storage]
+books_root = "Books"
+koreader_root = ".adds/koreader"
+installer_trigger = ".kobo/KoboRoot.tgz"
+recovery_marker = ".kobo/KOReader-autostart-disabled"
+
+[ssh]
+user = "root"
+port = 22
+authorized_keys_paths = [
+  ".ssh/authorized_keys",
+  "mnt/onboard/.adds/koreader/settings/SSH/authorized_keys",
+]
+
+[acceptance]
+physical_gates = [
+  "display_without_blanking_or_flicker",
+  "comfortlight_intensity_and_warmth",
+  "sleep_cover_close_and_open",
+  "manual_wifi_on_and_off",
+  "official_kobo_remote_pair_and_reconnect",
+  "epub_and_pdf_page_turns",
+  "multi_day_battery_drain",
+]

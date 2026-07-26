@@ -1,0 +1,31 @@
+id = "vendor-model"
+name = "Vendor Model"
+platform = "vendor"
+status = "scaffold"
+
+[detection]
+required_paths = []
+marker_file = ""
+marker_tokens = []
+
+[storage]
+books_root = "Books"
+koreader_root = ".adds/koreader"
+installer_trigger = ""
+recovery_marker = ""
+
+[ssh]
+user = "root"
+port = 22
+authorized_keys_paths = []
+
+[acceptance]
+physical_gates = [
+  "display",
+  "front_light",
+  "sleep_wake",
+  "manual_wifi",
+  "bluetooth_remote",
+  "battery",
+]
+
