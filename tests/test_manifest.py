@@ -1,5 +1,6 @@
 from hashlib import sha256
 from contextlib import redirect_stdout
+from dataclasses import replace
 import io
 from pathlib import Path
 import shutil
@@ -13,7 +14,7 @@ from koreader_appliance.model import Device
 from koreader_appliance.manifest import ApplianceManifest
 from koreader_appliance.registry import Registry
 from koreader_appliance.safety import SafetyError
-from koreader_appliance.state import apply, plan
+from koreader_appliance.state import apply, plan, require_installable
 
 
 REPOSITORY = Path(__file__).resolve().parents[1]
@@ -89,7 +90,7 @@ class ManifestTests(unittest.TestCase):
         (mount / ".kobo").mkdir(parents=True)
         (mount / ".kobo" / "version").write_text("P365\n")
         backup_destination = root / "backup"
-        device = Registry(REPOSITORY / "devices").detect(mount)
+        device = Registry(REPOSITORY / "adapters").detect(mount)
         create_backup(mount, backup_destination, device)
 
         archive = root / "reader.zip"
@@ -149,14 +150,14 @@ class ManifestTests(unittest.TestCase):
         finally:
             temporary.cleanup()
 
-    def test_untested_gate_requires_explicit_override(self) -> None:
+    def test_unverified_gate_requires_explicit_override(self) -> None:
         temporary, manifest, device = self._fixture()
         try:
-            untested = Device(
+            unverified = Device(
                 id=device.id,
                 name=device.name,
                 platform=device.platform,
-                status="staging-beta",
+                status="unverified",
                 detection=device.detection,
                 storage=device.storage,
                 ssh=device.ssh,
@@ -164,17 +165,38 @@ class ManifestTests(unittest.TestCase):
                 source=device.source,
             )
             mount = Path(temporary.name) / "reader"
-            with self.assertRaisesRegex(SafetyError, "untested on hardware"):
-                apply(mount, manifest, untested)
-            result = apply(mount, manifest, untested, allow_untested=True)
+            with self.assertRaisesRegex(SafetyError, "not verified on hardware"):
+                apply(mount, manifest, unverified)
+            result = apply(mount, manifest, unverified, allow_unverified=True)
             self.assertTrue(all(step["status"] == "ok" for step in result))
         finally:
             temporary.cleanup()
 
+    def test_verified_status_does_not_require_override(self) -> None:
+        temporary, manifest, device = self._fixture()
+        try:
+            trusted = replace(device, status="verified")
+            result = apply(Path(temporary.name) / "reader", manifest, trusted)
+            self.assertTrue(all(step["status"] == "ok" for step in result))
+        finally:
+            temporary.cleanup()
+
+    def test_blocked_kobo_is_refused_even_with_override(self) -> None:
+        device = Registry(REPOSITORY / "adapters").get("kobo-clara-bw")
+        blocked = replace(device, status="blocked")
+        with self.assertRaisesRegex(SafetyError, "blocked"):
+            require_installable(blocked, allow_unverified=True)
+
+    def test_unknown_status_requires_override(self) -> None:
+        device = Registry(REPOSITORY / "adapters").get("kobo-clara-bw")
+        unknown = replace(device, status="future-status")
+        with self.assertRaisesRegex(SafetyError, "not verified"):
+            require_installable(unknown)
+
     def test_apply_refuses_kindle_vendor_boot_chain(self) -> None:
         temporary, manifest, _ = self._fixture()
         try:
-            kindle = Registry(REPOSITORY / "devices").get("kindle")
+            kindle = Registry(REPOSITORY / "adapters").get("kindle")
             with self.assertRaisesRegex(SafetyError, "KUAL/MRPI"):
                 apply(Path(temporary.name) / "reader", manifest, kindle)
         finally:

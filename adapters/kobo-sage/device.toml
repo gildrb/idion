@@ -1,12 +1,12 @@
-id = "kobo-clara-bw"
-name = "Kobo Clara BW"
+id = "kobo-sage"
+name = "Kobo Sage"
 platform = "kobo"
-status = "hardware-beta"
+status = "unverified"
 
 [detection]
 required_paths = [".kobo", ".kobo/version"]
 marker_file = ".kobo/version"
-marker_tokens = ["P365"]
+marker_tokens = ["N778"]
 
 [storage]
 books_root = "Books"
@@ -23,12 +23,4 @@ authorized_keys_paths = [
 ]
 
 [acceptance]
-physical_gates = [
-  "display_without_blanking_or_flicker",
-  "comfortlight_intensity_and_warmth",
-  "sleep_cover_close_and_open",
-  "manual_wifi_on_and_off",
-  "official_kobo_remote_pair_and_reconnect",
-  "epub_and_pdf_page_turns",
-  "multi_day_battery_drain",
-]
+physical_gates = ["display", "front_light", "buttons", "sleep_wake", "manual_wifi", "battery"]

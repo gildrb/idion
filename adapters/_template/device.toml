@@ -1,7 +1,7 @@
 id = "vendor-model"
 name = "Vendor Model"
 platform = "vendor"
-status = "scaffold"
+status = "blocked"
 
 [detection]
 required_paths = []
@@ -28,4 +28,3 @@ physical_gates = [
   "bluetooth_remote",
   "battery",
 ]
-

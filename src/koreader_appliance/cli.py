@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import getpass
 import json
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 import subprocess
 import sys
@@ -22,6 +23,18 @@ from .state import (
     require_installable,
 )
 from .validate import validate_live
+
+
+class _ArgumentParser(argparse.ArgumentParser):
+    def error(self, message: str) -> None:
+        raise SafetyError(message)
+
+
+def _package_version() -> str:
+    try:
+        return version("koreader-appliance")
+    except PackageNotFoundError:
+        return "1.0.0"
 
 
 def _registry(arguments: argparse.Namespace) -> Registry:
@@ -75,7 +88,7 @@ def build_root_command(arguments: argparse.Namespace) -> None:
         )
     adapter_rootfs = repository / "adapters" / device.id / "rootfs"
     if not adapter_rootfs.is_dir():
-        adapter_rootfs = repository / "adapters" / "kobo-clara-bw" / "rootfs"
+        adapter_rootfs = repository / "adapters" / "_kobo-common" / "rootfs"
     _json(
         build_kobo_root(
             device=device,
@@ -91,12 +104,14 @@ def build_root_command(arguments: argparse.Namespace) -> None:
 
 def stage_command(arguments: argparse.Namespace) -> None:
     device = _device(arguments)
-    require_installable(device, arguments.allow_untested)
+    require_installable(device, arguments.allow_unverified)
     verify_backup_manifest(arguments.backup_manifest, device, arguments.mount)
     settings = arguments.settings
     if settings is None:
         repository = Path(__file__).resolve().parents[2]
-        candidate = repository / "profiles" / device.id / "base.lua"
+        candidate = repository / "adapters" / device.id / "profiles" / "base.lua"
+        if not candidate.is_file() and device.platform == "kobo":
+            candidate = repository / "adapters" / "_kobo-common" / "profiles" / "base.lua"
         settings = candidate if candidate.is_file() else None
     _json(
         stage_koreader(
@@ -158,7 +173,7 @@ def manifest_command(arguments: argparse.Namespace) -> None:
                 arguments.mount,
                 manifest,
                 device,
-                arguments.allow_untested,
+                arguments.allow_unverified,
             )
         )
     else:
@@ -179,7 +194,7 @@ def setup_command(arguments: argparse.Namespace) -> None:
         raise SafetyError(
             f"appliance manifest targets {manifest.device}, requested {device.id}"
         )
-    require_installable(device, arguments.allow_untested)
+    require_installable(device, arguments.allow_unverified)
     mount = arguments.mount or _find_mount(registry, device)
     detected = registry.detect(mount)
     if detected.id != device.id:
@@ -208,14 +223,16 @@ def setup_command(arguments: argparse.Namespace) -> None:
                 "total_bytes": backup_summary["total_bytes"],
             },
             "state": apply_manifest(
-                mount, manifest, device, arguments.allow_untested
+                mount, manifest, device, arguments.allow_unverified
             ),
         }
     )
 
 
-def _find_mount(registry: Registry, device) -> Path:
-    candidates = [
+def _find_mount(
+    registry: Registry, device, candidates: list[Path] | None = None
+) -> Path:
+    candidates = candidates or [
         Path("/Volumes/KOBOeReader"),
         Path("/media") / getpass.getuser(),
         Path("/run/media") / getpass.getuser(),
@@ -224,7 +241,7 @@ def _find_mount(registry: Registry, device) -> Path:
     for parent in candidates:
         if not parent.is_dir():
             continue
-        paths = [parent] if parent.name == device.id else list(parent.iterdir())
+        paths = [parent] if device.matches(parent) else list(parent.iterdir())
         matches.extend(path for path in paths if path.is_dir() and device.matches(path))
     unique = sorted(set(matches))
     if len(unique) != 1:
@@ -235,7 +252,10 @@ def _find_mount(registry: Registry, device) -> Path:
 
 
 def parser() -> argparse.ArgumentParser:
-    result = argparse.ArgumentParser(prog="koreader-appliance")
+    result = _ArgumentParser(prog="koreader-appliance")
+    result.add_argument(
+        "--version", action="version", version=f"%(prog)s {_package_version()}"
+    )
     result.add_argument(
         "--device-dir", type=Path, help="directory containing device TOML files"
     )
@@ -278,7 +298,7 @@ def parser() -> argparse.ArgumentParser:
     stage.add_argument("--root-package", type=Path, required=True)
     stage.add_argument("--backup-manifest", type=Path, required=True)
     stage.add_argument("--settings", type=Path)
-    stage.add_argument("--allow-untested", action="store_true")
+    stage.add_argument("--allow-unverified", action="store_true")
     stage.set_defaults(handler=stage_command)
 
     recovery = commands.add_parser(
@@ -329,7 +349,7 @@ def parser() -> argparse.ArgumentParser:
         manifest_command_parser.add_argument("mount", type=Path)
         manifest_command_parser.add_argument("--manifest", type=Path, required=True)
         manifest_command_parser.add_argument("--yes", action="store_true")
-        manifest_command_parser.add_argument("--allow-untested", action="store_true")
+        manifest_command_parser.add_argument("--allow-unverified", action="store_true")
         manifest_command_parser.set_defaults(handler=manifest_command)
 
     setup = commands.add_parser(
@@ -343,14 +363,14 @@ def parser() -> argparse.ArgumentParser:
         default=None,
     )
     setup.add_argument("--yes", action="store_true")
-    setup.add_argument("--allow-untested", action="store_true")
+    setup.add_argument("--allow-unverified", action="store_true")
     setup.set_defaults(handler=setup_command)
     return result
 
 
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
-    if argv and argv[0] not in {
+    if argv and not argv[0].startswith("-") and argv[0] not in {
         "devices",
         "detect",
         "backup",
@@ -367,11 +387,12 @@ def main(argv: list[str] | None = None) -> int:
         try:
             Registry().get(argv[0])
         except SafetyError:
-            pass
+            print(f"error: unknown device adapter: {argv[0]}", file=sys.stderr)
+            return 1
         else:
             argv.insert(0, "setup")
-    arguments = parser().parse_args(argv)
     try:
+        arguments = parser().parse_args(argv)
         arguments.handler(arguments)
         return 0
     except (OSError, SafetyError, subprocess.SubprocessError) as error:

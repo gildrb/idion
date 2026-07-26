@@ -1,7 +1,7 @@
 id = "kobo-clara-hd"
 name = "Kobo Clara HD"
 platform = "kobo"
-status = "staging-beta"
+status = "unverified"
 
 [detection]
 required_paths = [".kobo", ".kobo/version"]

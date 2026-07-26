@@ -1,7 +1,7 @@
 id = "kindle"
 name = "Amazon Kindle"
 platform = "kindle"
-status = "framework"
+status = "blocked"
 
 [detection]
 required_paths = ["documents", "system/version.txt"]

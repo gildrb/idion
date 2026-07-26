@@ -1,12 +1,12 @@
-id = "kobo-clara-colour"
-name = "Kobo Clara Colour"
+id = "kobo-nia"
+name = "Kobo Nia"
 platform = "kobo"
-status = "staging-beta"
+status = "unverified"
 
 [detection]
 required_paths = [".kobo", ".kobo/version"]
 marker_file = ".kobo/version"
-marker_tokens = ["N367"]
+marker_tokens = ["N306"]
 
 [storage]
 books_root = "Books"

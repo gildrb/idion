@@ -1,4 +1,4 @@
-device = "kobo-clara-bw"
+device = "kobo-device-id"
 
 [koreader]
 archive = "/path/to/koreader-kobo.zip"

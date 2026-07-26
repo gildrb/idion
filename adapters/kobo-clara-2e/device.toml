@@ -1,12 +1,12 @@
-id = "kobo-elipsa-2e"
-name = "Kobo Elipsa 2E"
+id = "kobo-clara-2e"
+name = "Kobo Clara 2E"
 platform = "kobo"
-status = "staging-beta"
+status = "unverified"
 
 [detection]
 required_paths = [".kobo", ".kobo/version"]
 marker_file = ".kobo/version"
-marker_tokens = ["N605"]
+marker_tokens = ["N506"]
 
 [storage]
 books_root = "Books"

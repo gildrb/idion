@@ -1,4 +1,4 @@
-127.0.0.1 localhost localhost.localdomain clara
+127.0.0.1 localhost localhost.localdomain @HOSTNAME@
 ::1 localhost localhost.localdomain
 
 # Kobo/Rakuten store, account, sync, update, and analytics endpoints.

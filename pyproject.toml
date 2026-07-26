@@ -4,13 +4,28 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "koreader-appliance"
-version = "0.1.0"
-description = "Reproducible KOReader-first e-reader migrations with recovery and evidence"
+version = "1.0.0"
+description = "Deterministic, additive KOReader installation tooling for e-readers"
 readme = "README.md"
 requires-python = ">=3.11"
-license = "GPL-3.0-or-later"
+license = "GPL-3.0"
 authors = [{ name = "Gil Rodrigues" }]
 dependencies = []
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Utilities",
+]
+
+[project.urls]
+Homepage = "https://github.com/gildrb/koreader-appliance"
+Repository = "https://github.com/gildrb/koreader-appliance"
+Issues = "https://github.com/gildrb/koreader-appliance/issues"
 
 [project.scripts]
 koreader-appliance = "koreader_appliance.cli:main"
@@ -20,4 +35,3 @@ package-dir = { "" = "src" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
-

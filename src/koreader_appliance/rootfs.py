@@ -46,6 +46,17 @@ def _copy_required(source: Path, destination: Path, mode: int) -> None:
     destination.chmod(mode)
 
 
+def _render_hostname(root: Path, hostname: str) -> None:
+    for relative in ("etc/hostname", "etc/hosts", "etc/init.d/ssh"):
+        path = root / relative
+        if not path.is_file():
+            continue
+        path.write_text(
+            path.read_text(encoding="utf-8").replace("@HOSTNAME@", hostname),
+            encoding="utf-8",
+        )
+
+
 def _add_tree(archive: tarfile.TarFile, root: Path, epoch: int) -> None:
     entries = [root, *sorted(root.rglob("*"))]
     for path in entries:
@@ -87,6 +98,7 @@ def build_kobo_root(
         work = Path(temporary)
         root = work / "rootfs"
         shutil.copytree(template, root)
+        _render_hostname(root, device.ssh.hostname)
 
         host_key = work / "ssh_host_ed25519_key"
         subprocess.run(

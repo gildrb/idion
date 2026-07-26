@@ -1,12 +1,12 @@
-id = "kobo-clara-2e"
-name = "Kobo Clara 2E"
+id = "kobo-libra-2"
+name = "Kobo Libra 2"
 platform = "kobo"
-status = "staging-beta"
+status = "unverified"
 
 [detection]
 required_paths = [".kobo", ".kobo/version"]
 marker_file = ".kobo/version"
-marker_tokens = ["N506"]
+marker_tokens = ["N418"]
 
 [storage]
 books_root = "Books"
@@ -23,4 +23,4 @@ authorized_keys_paths = [
 ]
 
 [acceptance]
-physical_gates = ["display", "front_light", "sleep_wake", "manual_wifi", "battery"]
+physical_gates = ["display", "front_light", "buttons", "sleep_wake", "manual_wifi", "battery"]

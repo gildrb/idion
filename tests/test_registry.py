@@ -11,7 +11,7 @@ REPOSITORY = Path(__file__).resolve().parents[1]
 
 class RegistryTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.registry = Registry(REPOSITORY / "devices")
+        self.registry = Registry(REPOSITORY / "adapters")
 
     def test_detects_clara_bw_by_storage_and_product_marker(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -61,6 +61,11 @@ class RegistryTests(unittest.TestCase):
             (mount / "system").mkdir()
             (mount / "system" / "version.txt").write_text("Kindle 5.16\n")
             self.assertEqual(self.registry.detect(mount).id, "kindle")
+
+    def test_adapters_use_final_status_vocabulary(self) -> None:
+        self.assertEqual(self.registry.get("kobo-clara-bw").status, "verified")
+        self.assertEqual(self.registry.get("kobo-libra-2").status, "unverified")
+        self.assertEqual(self.registry.get("kindle").status, "blocked")
 
 
 if __name__ == "__main__":
