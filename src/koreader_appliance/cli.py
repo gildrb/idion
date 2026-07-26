@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import getpass
 import json
 from pathlib import Path
 import subprocess
@@ -14,6 +15,8 @@ from .rootfs import build_kobo_root
 from .safety import SafetyError
 from .ssh import render_host_config
 from .stage import stage_koreader
+from .manifest import ApplianceManifest
+from .state import apply as apply_manifest, plan as plan_manifest
 from .validate import validate_live
 
 
@@ -132,6 +135,83 @@ def validate_command(arguments: argparse.Namespace) -> None:
         raise SafetyError("one or more live validation checks failed")
 
 
+def manifest_command(arguments: argparse.Namespace) -> None:
+    manifest = ApplianceManifest.from_toml(arguments.manifest)
+    device = _registry(arguments).get(manifest.device)
+    if arguments.command == "apply":
+        if not arguments.yes:
+            raise SafetyError("appliance apply requires --yes")
+        _json(apply_manifest(arguments.mount, manifest, device))
+    else:
+        _json(plan_manifest(arguments.mount, manifest, device))
+
+
+def setup_command(arguments: argparse.Namespace) -> None:
+    if not arguments.yes:
+        raise SafetyError("one-shot setup requires --yes")
+    registry = _registry(arguments)
+    device = registry.get(arguments.device)
+    manifest_path = arguments.manifest or (
+        Path("~/.config/koreader-appliance").expanduser()
+        / f"{device.id}.toml"
+    )
+    manifest = ApplianceManifest.from_toml(manifest_path)
+    if manifest.device != device.id:
+        raise SafetyError(
+            f"appliance manifest targets {manifest.device}, requested {device.id}"
+        )
+    mount = arguments.mount or _find_mount(registry, device)
+    detected = registry.detect(mount)
+    if detected.id != device.id:
+        raise SafetyError(
+            f"{mount} detected as {detected.id}, requested {device.id}"
+        )
+
+    backup_path = manifest.backup.manifest
+    backup_summary: dict[str, object]
+    if backup_path.is_file():
+        backup_summary = verify_backup_manifest(backup_path, device, mount)
+    else:
+        if backup_path.name != "backup-manifest.json":
+            raise SafetyError(
+                "automatic backup requires backup.manifest to end in "
+                "backup-manifest.json"
+            )
+        if backup_path.exists():
+            raise SafetyError(f"backup manifest path is not a file: {backup_path}")
+        backup_path.parent.parent.mkdir(parents=True, exist_ok=True)
+        backup_summary = create_backup(mount, backup_path.parent, device)
+    _json(
+        {
+            "backup": {
+                "file_count": backup_summary["file_count"],
+                "total_bytes": backup_summary["total_bytes"],
+            },
+            "state": apply_manifest(mount, manifest, device),
+        }
+    )
+
+
+def _find_mount(registry: Registry, device) -> Path:
+    candidates = [
+        Path("/Volumes/KOBOeReader"),
+        Path("/media") / getpass.getuser(),
+        Path("/run/media") / getpass.getuser(),
+    ]
+    matches = []
+    for parent in candidates:
+        if not parent.is_dir():
+            continue
+        paths = [parent] if parent.name == device.id else list(parent.iterdir())
+        matches.extend(path for path in paths if path.is_dir() and device.matches(path))
+    unique = sorted(set(matches))
+    if len(unique) != 1:
+        raise SafetyError(
+            f"could not identify one mounted {device.id}; pass MOUNT explicitly"
+        )
+    return unique[0]
+
+
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(prog="koreader-appliance")
     result.add_argument(
@@ -217,10 +297,54 @@ def parser() -> argparse.ArgumentParser:
     validate.add_argument("--build-manifest", type=Path, required=True)
     validate.add_argument("--evidence", type=Path, required=True)
     validate.set_defaults(handler=validate_command)
+
+    for name, help_text in (
+        ("plan", "show declarative appliance state without changing the reader"),
+        ("apply", "apply a declarative appliance manifest to a reader"),
+    ):
+        manifest_command_parser = commands.add_parser(name, help=help_text)
+        manifest_command_parser.add_argument("mount", type=Path)
+        manifest_command_parser.add_argument("--manifest", type=Path, required=True)
+        manifest_command_parser.add_argument("--yes", action="store_true")
+        manifest_command_parser.set_defaults(handler=manifest_command)
+
+    setup = commands.add_parser(
+        "setup", help="detect, back up, and apply a declarative appliance manifest"
+    )
+    setup.add_argument("device")
+    setup.add_argument("mount", type=Path, nargs="?")
+    setup.add_argument(
+        "--manifest",
+        type=Path,
+        default=None,
+    )
+    setup.add_argument("--yes", action="store_true")
+    setup.set_defaults(handler=setup_command)
     return result
 
 
 def main(argv: list[str] | None = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv and argv[0] not in {
+        "devices",
+        "detect",
+        "backup",
+        "build-kobo-root",
+        "stage",
+        "recovery",
+        "manga-profile",
+        "ssh-config",
+        "validate-live",
+        "plan",
+        "apply",
+        "setup",
+    }:
+        try:
+            Registry().get(argv[0])
+        except SafetyError:
+            pass
+        else:
+            argv.insert(0, "setup")
     arguments = parser().parse_args(argv)
     try:
         arguments.handler(arguments)

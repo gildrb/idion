@@ -7,6 +7,7 @@ import tempfile
 import zipfile
 
 from .model import Device
+from .manifest import DEFAULT_LIBRARY_FOLDERS
 from .safety import SafetyError, fsync_file, require_directory, under
 
 
@@ -39,6 +40,7 @@ def stage_koreader(
     root_package: Path,
     device: Device,
     settings: Path | None = None,
+    folders: tuple[str, ...] = DEFAULT_LIBRARY_FOLDERS,
 ) -> dict[str, str]:
     mount = require_directory(mount, "reader mount")
     if not device.matches(mount):
@@ -70,7 +72,7 @@ def stage_koreader(
         raise OSError("root package changed while staging")
 
     books_root = under(mount, device.storage.books_root)
-    for directory in ("Programming", "Linux", "Math", "Papers", "Manuals"):
+    for directory in folders:
         (books_root / directory).mkdir(parents=True, exist_ok=True)
 
     staged_settings = "not-requested"
