@@ -3,7 +3,7 @@
 Start with `koreader-appliance backup`; do not build or stage an installer
 until the backup finishes and its hashes match.
 
-## What works
+## Observed behavior
 
 1. Firmware `4.45.23697` on product `P365` starts KOReader after bounded Nickel
    hardware initialization.

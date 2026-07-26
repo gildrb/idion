@@ -1,0 +1,26 @@
+id = "kobo-nia"
+name = "Kobo Nia"
+platform = "kobo"
+status = "staging-beta"
+
+[detection]
+required_paths = [".kobo", ".kobo/version"]
+marker_file = ".kobo/version"
+marker_tokens = ["N306"]
+
+[storage]
+books_root = "Books"
+koreader_root = ".adds/koreader"
+installer_trigger = ".kobo/KoboRoot.tgz"
+recovery_marker = ".kobo/KOReader-autostart-disabled"
+
+[ssh]
+user = "root"
+port = 22
+authorized_keys_paths = [
+  ".ssh/authorized_keys",
+  "mnt/onboard/.adds/koreader/settings/SSH/authorized_keys",
+]
+
+[acceptance]
+physical_gates = ["display", "front_light", "sleep_wake", "manual_wifi", "battery"]
