@@ -12,29 +12,19 @@ one-shot command after mounting the reader.
 ### What changes compared to stock
 
 The staged `KoboRoot.tgz` is an additive overlay for the supported Kobo
-adapter. It changes the following parts of the reader:
+adapter:
 
 - `/etc/hosts` maps Kobo and Rakuten store, account, sync, firmware-update,
-  and analytics endpoints such as `api.kobobooks.com`, `auth.kobobooks.com`,
-  `device.kobo.com`, `firmware.kobo.com`, `storeapi.kobo.com`,
-  `www.kobo.com`, and `www.google-analytics.com` to `0.0.0.0`. KOReader
-  networking, dictionaries, Wikipedia, SSH, and user-selected services remain
-  unrestricted according to the overlay's hosts file.
-- `on-animator.sh` starts `koreader-autostart.sh` during boot. That script waits
-  for Nickel and the onboard storage, then starts KOReader after Nickel has
-  initialized the hardware. A disable marker, USB or external power at boot,
-  an incomplete installation, or two early KOReader failures keeps the reader
-  in Nickel.
-- The SSH init script starts `sshd` only when `.kobo/ssh-enabled` exists.
-  `sshd_config` permits public-key authentication only, disables password
-  authentication, and uses `/etc/ssh/ssh_host_ed25519_key`. The root-package
-  builder generates a new Ed25519 host key for each build. It also installs
-  the `scp`, `sftp-server`, and `rsync` binaries that you provide, and starts
-  a watchdog that retries `sshd` if it stops.
-- The recovery marker
-  `/mnt/onboard/.kobo/KOReader-autostart-disabled` prevents the autostart
-  script from launching KOReader. Remove it only after the reader is stable
-  and a manual KOReader launch succeeds.
+  and analytics hosts to `0.0.0.0`, including the hosts listed in
+  `adapters/_kobo-common/rootfs/etc/hosts`. KOReader networking, dictionaries,
+  Wikipedia, SSH, and user-selected services remain unrestricted.
+- `on-animator.sh` starts `koreader-autostart.sh` after Nickel initializes.
+  USB or external power, the disable marker, an incomplete install, or two
+  early failures keeps the reader in Nickel. The marker is
+  `/mnt/onboard/.kobo/KOReader-autostart-disabled`.
+- SSH starts only with `.kobo/ssh-enabled`, allows public keys only, and uses
+  a new Ed25519 host key per build. The overlay includes the user-provided
+  `scp`, `sftp-server`, and `rsync` binaries plus an `sshd` watchdog.
 
 The overlay does not replace Nickel firmware, the Kobo boot chain, or device
 drivers. It does not delete existing files, change Wi-Fi settings, reboot, or
@@ -43,10 +33,10 @@ previous reader state.
 
 ### What this does and does not do
 
-The commands run locally, create no accounts, upload nothing, and make no
-network calls. They detect one adapter, create or verify an off-device backup,
-verify SHA-256 pins, and stage files additively. `plan` is read-only.
-`validate-live` is separate and connects only when explicitly run.
+Commands run locally, create no accounts, upload nothing, and make no network
+calls. They detect one adapter, verify an off-device backup and SHA-256 pins,
+then stage files additively. `plan` is read-only. `validate-live` connects only
+when explicitly run.
 
 ### Hardware status
 
