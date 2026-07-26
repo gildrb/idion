@@ -1,7 +1,7 @@
 id = "kobo-elipsa-2e"
 name = "Kobo Elipsa 2E"
 platform = "kobo"
-status = "staging-beta"
+status = "unverified"
 
 [detection]
 required_paths = [".kobo", ".kobo/version"]

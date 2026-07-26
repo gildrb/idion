@@ -2,15 +2,16 @@
 
 ## Status gate
 
-Device manifests declare their evidence level. `hardware-beta` adapters may
-mutate a mounted reader after the normal detection and verified-backup gates.
-Adapters marked `staging-beta` are intentionally untested on physical hardware:
-`apply`, `setup`, and direct staging refuse them unless the operator passes
-`--allow-untested`. `plan` remains read-only and does not require the flag.
+Device manifests declare their evidence level. `verified` adapters may mutate a
+mounted reader after the normal detection and verified-backup gates. Adapters
+marked `unverified` use the shared mechanics but have not been tested on
+physical hardware. `apply`, `setup`, and direct staging refuse them unless the
+operator passes `--allow-unverified`. `plan` remains read-only and does not
+require the flag.
 
-Non-Kobo devices are detection and backup scaffolds until their vendor boot
-mechanism is implemented. In particular, Kindle requires a jailbreak plus a
-KUAL/MRPI adapter; this project will not send a Kobo `KoboRoot.tgz` to it.
+Blocked devices support detection and backup only. In particular, Kindle
+requires a jailbreak plus a KUAL/MRPI adapter; this project will not send a
+Kobo `KoboRoot.tgz` to it.
 
 Copy `adapters/_template/device.toml` into `adapters/<device-id>/device.toml`
 and give the adapter a unique ID. Keep its profiles, README, and any model
@@ -37,8 +38,13 @@ model-specific files in the adapter directory.
 
 ## Support states
 
-- `scaffold`: metadata only; installation is blocked.
-- `hardware-beta`: remote tests pass on named firmware and hardware.
-- `production`: remote and physical gates pass across repeated boots and soak.
+- `verified`: the adapter has passed remote checks and physical tests on named
+  hardware and firmware.
+- `unverified`: the adapter uses implemented mechanics but has no physical
+  hardware test evidence.
+- `blocked`: installation is not available for the platform.
 
-Promotion requires remote checks and a physical battery soak.
+To promote an `unverified` adapter to `verified`, run the remote validator on
+the named hardware and firmware, then record successful boot, recovery,
+display, controls, storage, battery, and repeated-soak tests. The evidence
+must be reviewed and the adapter status changed only after those tests pass.

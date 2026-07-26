@@ -1,7 +1,7 @@
 id = "kobo-libra-2"
 name = "Kobo Libra 2"
 platform = "kobo"
-status = "staging-beta"
+status = "unverified"
 
 [detection]
 required_paths = [".kobo", ".kobo/version"]

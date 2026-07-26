@@ -135,7 +135,7 @@ class StressTests(unittest.TestCase):
                                 "--manifest",
                                 str(manifest_path),
                                 "--yes",
-                                "--allow-untested",
+                                "--allow-unverified",
                             ]
                         ),
                         0,
@@ -157,7 +157,7 @@ class StressTests(unittest.TestCase):
                                 "--manifest",
                                 str(manifest_path),
                                 "--yes",
-                                "--allow-untested",
+                                "--allow-unverified",
                             ]
                         ),
                         0,

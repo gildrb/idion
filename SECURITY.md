@@ -33,5 +33,3 @@ off is deliberately unreachable.
 Send security-sensitive reports privately to the repository owner. Do not
 attach installers, backups, runtime evidence, or key material.
 
-Next: run `git diff --cached --name-only` and inspect every staged path.
-

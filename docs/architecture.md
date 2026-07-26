@@ -32,8 +32,8 @@ document sidecar. It must not assume a vendor boot hook or display driver.
 ## Device adapter
 
 An adapter owns boot timing, hardware initialization, autostart failure rules,
-recovery markers, account-home paths, and physical acceptance gates. A copied
-manifest is a scaffold until real hardware proves it.
+recovery markers, account-home paths, and physical acceptance gates. Adapter
+status records whether those paths have been tested on hardware.
 
 ## Secret flow
 

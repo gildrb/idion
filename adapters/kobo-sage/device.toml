@@ -1,7 +1,7 @@
 id = "kobo-sage"
 name = "Kobo Sage"
 platform = "kobo"
-status = "staging-beta"
+status = "unverified"
 
 [detection]
 required_paths = [".kobo", ".kobo/version"]

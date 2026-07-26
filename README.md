@@ -17,18 +17,18 @@ be reproduced.
 ## Hardware status
 
 The Kobo Clara BW adapter has been tested on a P365 device. The other Kobo
-adapters have verified model markers but are untested on physical hardware.
+adapters have verified model markers but no physical hardware test evidence.
 The core provides detection, hash-verified backup, keyed root-package
 generation, additive staging, recovery markers, SSH configuration, and
 document profiles.
 
 | Adapter | State | Supported operations |
 |---|---|---|
-| Kobo Clara BW (P365) | Hardware beta | Detect, back up, build, and stage |
-| Kobo Clara HD (N249), Clara 2E (N506), Clara Colour (N367), Libra H2O (N873), Libra 2 (N418), Libra Colour (N428), Nia (N306), Sage (N778), Elipsa 2E (N605), Forma (N782) | Staging beta | KoboRoot.tgz path; untested, requires `--allow-untested` |
-| Kindle | Framework only | Detect and back up only; jailbreak and KUAL/MRPI adapter required |
+| Kobo Clara BW (P365) | Verified | Detect, back up, build, and stage |
+| Kobo Clara HD (N249), Clara 2E (N506), Clara Colour (N367), Libra H2O (N873), Libra 2 (N418), Libra Colour (N428), Nia (N306), Sage (N778), Elipsa 2E (N605), Forma (N782) | Unverified | KoboRoot.tgz path; not tested on hardware, requires `--allow-unverified` |
+| Kindle | Blocked | Detect and back up only; jailbreak and KUAL/MRPI adapter required |
 
-“Framework only” blocks installation. It does not guess that unrelated boot
+“Blocked” prevents installation. It does not guess that unrelated boot
 chains, display drivers, or recovery mechanisms work like Kobo.
 
 ## Setup
@@ -82,12 +82,12 @@ chains, display drivers, or recovery mechanisms work like Kobo.
 
    ```sh
    koreader-appliance <device> --yes
-   koreader-appliance kobo-libra-2 /Volumes/KOBOeReader --yes --allow-untested
+   koreader-appliance kobo-libra-2 /Volumes/KOBOeReader --yes --allow-unverified
    ```
 
    Setup detects the reader, creates or verifies the backup named by the
-   manifest, verifies both pins, and applies the desired state. Untested Kobo
-   adapters require `--allow-untested`; the mutating step always requires
+   manifest, verifies both pins, and applies the desired state. Unverified Kobo
+   adapters require `--allow-unverified`; the mutating step always requires
    `--yes`.
 
 6. To inspect a reader without changing it, plan first:
@@ -98,7 +98,7 @@ chains, display drivers, or recovery mechanisms work like Kobo.
    ```
 
 The setup flow keeps the backup outside the reader and never deletes files,
-reboots, ejects, or changes Wi-Fi. Staging-beta Kobo models use the shared Kobo
+reboots, ejects, or changes Wi-Fi. Unverified Kobo models use the shared Kobo
 rootfs until a model-specific rootfs is available.
 
 ## Manual operations

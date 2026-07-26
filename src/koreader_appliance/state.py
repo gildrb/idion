@@ -9,16 +9,16 @@ from .safety import SafetyError, require_directory, under
 from .stage import stage_koreader
 
 
-def require_installable(device: Device, allow_untested: bool = False) -> None:
+def require_installable(device: Device, allow_unverified: bool = False) -> None:
     if device.platform != "kobo":
         raise SafetyError(
             f"cannot apply {device.id}: Kindle and other non-Kobo readers need "
             "a vendor adapter and jailbreak (KUAL/MRPI), not KoboRoot.tgz"
         )
-    if device.status not in ("hardware-beta", "production") and not allow_untested:
+    if device.status == "unverified" and not allow_unverified:
         raise SafetyError(
-            f"{device.id} is untested on hardware (status: {device.status}); "
-            "pass --allow-untested to permit staging"
+            f"{device.id} is unverified on hardware (status: {device.status}); "
+            "pass --allow-unverified to permit staging"
         )
 
 
@@ -100,10 +100,10 @@ def apply(
     mount: Path,
     manifest: ApplianceManifest,
     device: Device,
-    allow_untested: bool = False,
+    allow_unverified: bool = False,
 ) -> list[dict[str, str]]:
     mount = require_directory(mount, "reader mount")
-    require_installable(device, allow_untested)
+    require_installable(device, allow_unverified)
     if not device.matches(mount):
         raise SafetyError(f"{mount} does not match adapter {device.id}")
     if manifest.device != device.id:

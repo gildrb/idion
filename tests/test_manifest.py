@@ -150,14 +150,14 @@ class ManifestTests(unittest.TestCase):
         finally:
             temporary.cleanup()
 
-    def test_untested_gate_requires_explicit_override(self) -> None:
+    def test_unverified_gate_requires_explicit_override(self) -> None:
         temporary, manifest, device = self._fixture()
         try:
-            untested = Device(
+            unverified = Device(
                 id=device.id,
                 name=device.name,
                 platform=device.platform,
-                status="staging-beta",
+                status="unverified",
                 detection=device.detection,
                 storage=device.storage,
                 ssh=device.ssh,
@@ -165,17 +165,17 @@ class ManifestTests(unittest.TestCase):
                 source=device.source,
             )
             mount = Path(temporary.name) / "reader"
-            with self.assertRaisesRegex(SafetyError, "untested on hardware"):
-                apply(mount, manifest, untested)
-            result = apply(mount, manifest, untested, allow_untested=True)
+            with self.assertRaisesRegex(SafetyError, "unverified on hardware"):
+                apply(mount, manifest, unverified)
+            result = apply(mount, manifest, unverified, allow_unverified=True)
             self.assertTrue(all(step["status"] == "ok" for step in result))
         finally:
             temporary.cleanup()
 
-    def test_production_status_does_not_require_override(self) -> None:
+    def test_verified_status_does_not_require_override(self) -> None:
         temporary, manifest, device = self._fixture()
         try:
-            trusted = replace(device, status="production")
+            trusted = replace(device, status="verified")
             result = apply(Path(temporary.name) / "reader", manifest, trusted)
             self.assertTrue(all(step["status"] == "ok" for step in result))
         finally:

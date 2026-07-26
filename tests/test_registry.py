@@ -62,6 +62,11 @@ class RegistryTests(unittest.TestCase):
             (mount / "system" / "version.txt").write_text("Kindle 5.16\n")
             self.assertEqual(self.registry.detect(mount).id, "kindle")
 
+    def test_adapters_use_final_status_vocabulary(self) -> None:
+        self.assertEqual(self.registry.get("kobo-clara-bw").status, "verified")
+        self.assertEqual(self.registry.get("kobo-libra-2").status, "unverified")
+        self.assertEqual(self.registry.get("kindle").status, "blocked")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,7 +1,7 @@
 id = "kobo-libra-colour"
 name = "Kobo Libra Colour"
 platform = "kobo"
-status = "staging-beta"
+status = "unverified"
 
 [detection]
 required_paths = [".kobo", ".kobo/version"]
