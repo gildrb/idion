@@ -10,28 +10,27 @@ The daily path is small:
 power → vendor hardware initialization → KOReader → current book
 ```
 
-## Current win
+## Hardware status
 
-The Kobo Clara BW adapter reproduces the responsive P365 migration that runs
-KOReader as the daily interface. Other popular Kobo models have staging
-adapters with verified model markers, but remain untested on physical hardware.
-The automated core covers detection, hash-verified backup, keyed root-package
-generation, additive staging, recovery markers, pinned SSH configuration, and
-whole-page manga settings.
+The Kobo Clara BW adapter has been tested on a P365 device. The other Kobo
+adapters have verified model markers but are untested on physical hardware.
+The core provides detection, hash-verified backup, keyed root-package
+generation, additive staging, recovery markers, SSH configuration, and
+document profiles.
 
-| Adapter | State | Safe action now |
+| Adapter | State | Supported operations |
 |---|---|---|
 | Kobo Clara BW (P365) | Hardware beta | Detect, back up, build, and stage |
-| Kobo Clara HD (N249) | Staging beta | Same KoboRoot.tgz mechanics; untested, requires `--allow-untested` |
-| Kobo Clara 2E (N506) | Staging beta | Same KoboRoot.tgz mechanics; untested, requires `--allow-untested` |
-| Kobo Clara Colour (N367) | Staging beta | Same KoboRoot.tgz mechanics; untested, requires `--allow-untested` |
-| Kobo Libra H2O (N873) | Staging beta | Same KoboRoot.tgz mechanics; untested, requires `--allow-untested` |
-| Kobo Libra 2 (N418) | Staging beta | Same KoboRoot.tgz mechanics; untested, requires `--allow-untested` |
-| Kobo Libra Colour (N428) | Staging beta | Same KoboRoot.tgz mechanics; untested, requires `--allow-untested` |
-| Kobo Nia (N306) | Staging beta | Same KoboRoot.tgz mechanics; untested, requires `--allow-untested` |
-| Kobo Sage (N778) | Staging beta | Same KoboRoot.tgz mechanics; untested, requires `--allow-untested` |
-| Kobo Elipsa 2E (N605) | Staging beta | Same KoboRoot.tgz mechanics; untested, requires `--allow-untested` |
-| Kobo Forma (N782) | Staging beta | Same KoboRoot.tgz mechanics; untested, requires `--allow-untested` |
+| Kobo Clara HD (N249) | Staging beta | KoboRoot.tgz path; untested, requires `--allow-untested` |
+| Kobo Clara 2E (N506) | Staging beta | KoboRoot.tgz path; untested, requires `--allow-untested` |
+| Kobo Clara Colour (N367) | Staging beta | KoboRoot.tgz path; untested, requires `--allow-untested` |
+| Kobo Libra H2O (N873) | Staging beta | KoboRoot.tgz path; untested, requires `--allow-untested` |
+| Kobo Libra 2 (N418) | Staging beta | KoboRoot.tgz path; untested, requires `--allow-untested` |
+| Kobo Libra Colour (N428) | Staging beta | KoboRoot.tgz path; untested, requires `--allow-untested` |
+| Kobo Nia (N306) | Staging beta | KoboRoot.tgz path; untested, requires `--allow-untested` |
+| Kobo Sage (N778) | Staging beta | KoboRoot.tgz path; untested, requires `--allow-untested` |
+| Kobo Elipsa 2E (N605) | Staging beta | KoboRoot.tgz path; untested, requires `--allow-untested` |
+| Kobo Forma (N782) | Staging beta | KoboRoot.tgz path; untested, requires `--allow-untested` |
 | Kindle | Framework only | Detect and back up only; jailbreak and KUAL/MRPI adapter required |
 
 “Framework only” blocks installation. It does not guess that unrelated boot
@@ -104,12 +103,11 @@ koreader-appliance build-kobo-root \
   --output ~/ReaderBuilds/clara
 ```
 
-This takes about 2 seconds after the three verified ARM binaries exist. The
-command creates a unique host key, embeds its private half only in
+The command creates a unique host key, embeds its private half only in
 `KoboRoot.tgz`, and exports the public fingerprint beside the installer.
 Staging-beta Kobo models reuse the Clara rootfs template until a
-model-specific rootfs is validated; their host identity remains pinned by the
-generated key and device build manifest.
+model-specific rootfs is available. The generated build manifest records the
+host key fingerprint.
 
 ## Stage without activating
 
@@ -145,10 +143,9 @@ SHA-256 pins, then performs only additive staging. Re-running it is a no-op;
 it never deletes files or changes Wi-Fi. Start from
 `profiles/kobo-clara-bw/appliance.toml.example`.
 
-## Prove the live result
+## Validate a live reader
 
-Run one non-disruptive validation after the reader boots and Wi-Fi is manually
-enabled:
+Run live validation after the reader boots and Wi-Fi is manually enabled:
 
 ```sh
 koreader-appliance validate-live \
@@ -157,7 +154,7 @@ koreader-appliance validate-live \
   --evidence ~/ReaderEvidence/clara
 ```
 
-The command proves the pinned client policy, host fingerprint, root login,
+The command checks the pinned client policy, host fingerprint, root login,
 KOReader and watchdog health, installed binary hashes, SFTP, SCP, and additive
 rsync. It does not toggle Wi-Fi, reboot, or claim to see physical hardware.
 
