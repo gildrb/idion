@@ -31,7 +31,7 @@ document profiles.
 “Framework only” blocks installation. It does not guess that unrelated boot
 chains, display drivers, or recovery mechanisms work like Kobo.
 
-## First 10 minutes
+## Setup
 
 1. Find your device in the table above. Kindle detection and backup work, but
    installation is intentionally refused until a Kindle jailbreak and vendor
@@ -69,7 +69,7 @@ chains, display drivers, or recovery mechanisms work like Kobo.
 
    ```sh
    mkdir -p ~/.config/koreader-appliance
-   cp adapters/kobo-clara-bw/profiles/appliance.toml.example \
+   cp adapters/_kobo-common/profiles/appliance.toml.example \
      ~/.config/koreader-appliance/kobo-libra-2.toml
    sha256sum ~/Downloads/koreader-kobo.zip ~/ReaderBuilds/libra/KoboRoot.tgz
    ```
@@ -119,14 +119,14 @@ Wi-Fi. For read-only desired-state inspection:
 
 ```sh
 koreader-appliance plan /Volumes/KOBOeReader \
-  --manifest adapters/kobo-clara-bw/profiles/appliance.toml
+  --manifest adapters/_kobo-common/profiles/appliance.toml
 koreader-appliance apply /Volumes/KOBOeReader \
-  --manifest adapters/kobo-clara-bw/profiles/appliance.toml --yes
+  --manifest adapters/_kobo-common/profiles/appliance.toml --yes
 ```
 
 `plan` is read-only. `apply` detects the adapter, verifies the backup and both
 SHA-256 pins, then performs only additive staging. Re-running it is a no-op.
-Start from `adapters/kobo-clara-bw/profiles/appliance.toml.example`.
+Start from `adapters/_kobo-common/profiles/appliance.toml.example`.
 
 ## Validate a live reader
 
@@ -159,5 +159,3 @@ During daily use:
 
 Read [architecture](docs/architecture.md), [device adapters](docs/adding-a-device.md),
 [recovery](docs/recovery.md), and [security](SECURITY.md) before adding hardware.
-
-Next: run `koreader-appliance devices` from this checkout.

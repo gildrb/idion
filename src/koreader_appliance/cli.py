@@ -97,6 +97,8 @@ def stage_command(arguments: argparse.Namespace) -> None:
     if settings is None:
         repository = Path(__file__).resolve().parents[2]
         candidate = repository / "adapters" / device.id / "profiles" / "base.lua"
+        if not candidate.is_file() and device.platform == "kobo":
+            candidate = repository / "adapters" / "_kobo-common" / "profiles" / "base.lua"
         settings = candidate if candidate.is_file() else None
     _json(
         stage_koreader(

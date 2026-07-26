@@ -41,7 +41,4 @@ model-specific files in the adapter directory.
 - `hardware-beta`: remote tests pass on named firmware and hardware.
 - `production`: remote and physical gates pass across repeated boots and soak.
 
-Promoting one state normally takes 30–60 minutes for remote checks plus at
-least one overnight battery soak.
-
-Next: make detection fail when the model marker is missing.
+Promotion requires remote checks and a physical battery soak.

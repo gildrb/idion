@@ -47,5 +47,3 @@ manifest is a scaffold until real hardware proves it.
 Remote tests can prove processes, hashes, transfers, watchdog recovery, memory,
 storage, and battery telemetry. They cannot prove screen flicker, light color,
 cover behavior, button feel, or subjective page-turn latency.
-
-Next: open `adapters/_template/device.toml` before adding a model.

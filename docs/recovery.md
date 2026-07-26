@@ -23,5 +23,3 @@ Use the off-device storage backup and the official model-specific firmware.
 Neither belongs in this repository. Verify the hardware product code before
 applying firmware.
 
-Next: confirm the backup manifest opens before changing the recovery marker.
-

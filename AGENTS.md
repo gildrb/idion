@@ -13,5 +13,4 @@ Before committing:
 1. Run `python3 -m unittest discover -s tests -v`.
 2. Run `python3 -m compileall -q src tests`.
 3. Run a secret scan over the exact staged tree.
-
-Next: inspect `git diff --cached --name-only` before every push.
+4. Inspect `git diff --cached --name-only` before every push.
