@@ -217,7 +217,11 @@ class StageTests(unittest.TestCase):
             self.assertTrue((mount / "Books/Author/book.epub").is_file())
             self.assertFalse((mount / "Books/Author/._book.epub").exists())
             self.assertIn(
-                "ExcludeSyncFolders=",
+                "ExcludeSyncFolders=(\\.(?!kobo|adobe).+|([^.][^/]*/)+\\..+)",
+                (mount / ".kobo/Kobo/Kobo eReader.conf").read_text(),
+            )
+            self.assertNotIn(
+                r"ExcludeSyncFolders=(\\.",
                 (mount / ".kobo/Kobo/Kobo eReader.conf").read_text(),
             )
             self.assertIn(

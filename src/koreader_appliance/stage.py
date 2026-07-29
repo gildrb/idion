@@ -52,7 +52,7 @@ exit 1
 """
 DEPLOYMENT_MARKER = ".koreader-appliance.json"
 LIBRARY_MARKER = ".adds/koreader-appliance/library.json"
-EXCLUDE_SYNC_FOLDERS = r"(\\.(?!kobo|adobe).+|([^.][^/]*/)+\\..+)"
+EXCLUDE_SYNC_FOLDERS = r"(\.(?!kobo|adobe).+|([^.][^/]*/)+\..+)"
 BOOK_SUFFIXES = {
     ".cbr",
     ".cbz",
