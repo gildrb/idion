@@ -33,6 +33,28 @@ KOReader's maintained Dropbear service provides key-only SSH on port 2222 when
 KOReader and Wi-Fi are running. No password login, rootfs SSH daemon, or
 watchdog is installed.
 
+KOSyncthing+ can be supplied as pinned plugin and Syncthing archives in the
+manifest. The stable policy uses hourly one-shot syncs, LAN-only discovery, and
+the low-resource profile. Configure the server folder as `receiveonly` with
+staggered versioning; the Kobo folder must be `sendonly`, so a server fault can
+never overwrite the reader.
+
+### Self-hosted Syncthing
+
+The server needs an ordinary Syncthing service, not a custom sync server. The
+verified deployment uses the native user service and stores its receive-only
+archive at `~/Backups/Kobo/syncthing`:
+
+```sh
+systemctl --user enable --now syncthing.service
+syncthing cli config folders kobo-appliance dump-json
+```
+
+Pair the server with KOSyncthing+, share folder ID `kobo-appliance`, then set
+the Kobo side to send-only and the server side to receive-only. Keep global
+discovery, relays, NAT traversal, crash reporting, and automatic upgrades off;
+leave LAN discovery on. The server uses one-year staggered file versioning.
+
 ### What this does and does not do
 
 Commands run locally, create no accounts, upload nothing, and make no network

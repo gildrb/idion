@@ -45,6 +45,33 @@ class ManifestTests(unittest.TestCase):
             )
             self.assertIsNone(manifest.library.restore)
             self.assertIsNone(manifest.library.sha256)
+            self.assertIsNone(manifest.syncthing)
+
+    def test_parses_pinned_syncthing_archives(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            path = root / "appliance.toml"
+            path.write_text(
+                'device = "kobo-clara-bw"\n'
+                '[koreader]\narchive = "reader.zip"\nsha256 = "'
+                + "a" * 64
+                + '"\n[root_package]\npath = "root.tgz"\nsha256 = "'
+                + "b" * 64
+                + '"\n[backup]\nmanifest = "backup.json"\n'
+                + '[syncthing]\nplugin_archive = "plugin.zip"\nplugin_sha256 = "'
+                + "c" * 64
+                + '"\nbinary_archive = "syncthing.tar.gz"\nbinary_sha256 = "'
+                + "d" * 64
+                + '"\n',
+                encoding="utf-8",
+            )
+
+            manifest = ApplianceManifest.from_toml(path)
+
+            self.assertEqual(
+                manifest.syncthing.plugin.path, (root / "plugin.zip").resolve()
+            )
+            self.assertEqual(manifest.syncthing.binary.sha256, "d" * 64)
 
     def test_parses_pinned_library_restore(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

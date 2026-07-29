@@ -22,8 +22,14 @@ authorized_key = "~/.ssh/id_reader.pub"
 [settings]
 profile = "base.lua"
 
+[syncthing]
+plugin_archive = "/path/to/kosyncthing_plus.koplugin.zip"
+plugin_sha256 = "2222222222222222222222222222222222222222222222222222222222222222"
+binary_archive = "/path/to/syncthing-linux-arm.tar.gz"
+binary_sha256 = "3333333333333333333333333333333333333333333333333333333333333333"
+
 [library]
 folders = ["Programming", "Linux", "Math", "Papers", "Manuals"]
 # Optional verified import from an off-device library directory.
 # restore = "/path/to/ReaderBackups/library"
-# sha256 = "2222222222222222222222222222222222222222222222222222222222222222"
+# sha256 = "4444444444444444444444444444444444444444444444444444444444444444"

@@ -36,6 +36,22 @@ class BluetoothOverlayTests(unittest.TestCase):
         self.assertNotIn("waitForBluetoothInputDevice", connection)
         self.assertNotIn("ffiUtil.sleep", connection)
 
+    def test_appliance_policy_keeps_only_intentional_background_plugins(self) -> None:
+        patches = PLUGIN.parents[1] / "patches"
+        policy = (patches / "2-appliance-policy.lua").read_text(encoding="utf-8")
+        cleanup = (patches / "9-appliance-stop-ssh.lua").read_text(encoding="utf-8")
+        disabled_plugins = policy.split("}) do", 1)[0]
+
+        self.assertIn('"timesync",', policy)
+        self.assertIn('G_reader_settings:saveSetting("SSH_key_only_auth", true)', policy)
+        self.assertIn(
+            'G_reader_settings:saveSetting("syncthing_network_access", "lan")',
+            policy,
+        )
+        self.assertNotIn('"statistics",', disabled_plugins)
+        self.assertNotIn('"kobo_remote",', disabled_plugins)
+        self.assertIn("dropbear_koreader.pid", cleanup)
+
 
 if __name__ == "__main__":
     unittest.main()

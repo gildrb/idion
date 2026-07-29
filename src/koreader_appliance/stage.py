@@ -6,6 +6,7 @@ import os
 from pathlib import Path, PurePosixPath
 import shutil
 import stat
+import tarfile
 import tempfile
 import zipfile
 
@@ -30,7 +31,20 @@ set -eu
 
 for root in /mnt/onboard/.adds/koreader /mnt/onboard/.adds/koreader.previous; do
     if [ -f "$root/koreader.sh" ]; then
-        exec /bin/sh "$root/koreader.sh"
+        if /bin/sh "$root/koreader.sh"; then
+            status=0
+        else
+            status=$?
+        fi
+
+        # Return code 88 means KOReader already asked the OS to shut down.
+        # Every other final exit cold-boots Nickel so NickelMenu is loaded by
+        # the normal firmware startup path instead of an in-process restart.
+        if [ "$status" -ne 88 ]; then
+            sync
+            /sbin/reboot
+        fi
+        exit "$status"
     fi
 done
 
@@ -119,14 +133,20 @@ def _overlay_root(device: Device) -> Path:
 
 
 def deployment_record(
-    device: Device, archive_sha256: str, launch_mode: str
+    device: Device,
+    archive_sha256: str,
+    launch_mode: str,
+    syncthing_plugin_sha256: str | None = None,
+    syncthing_binary_sha256: str | None = None,
 ) -> dict[str, object]:
     return {
-        "schema": 1,
+        "schema": 2,
         "device": device.id,
         "archive_sha256": archive_sha256,
         "overlay_sha256": _tree_hash(_overlay_root(device)),
         "launch_mode": launch_mode,
+        "syncthing_plugin_sha256": syncthing_plugin_sha256,
+        "syncthing_binary_sha256": syncthing_binary_sha256,
     }
 
 
@@ -135,6 +155,8 @@ def deployment_is_current(
     device: Device,
     archive_sha256: str,
     launch_mode: str,
+    syncthing_plugin_sha256: str | None = None,
+    syncthing_binary_sha256: str | None = None,
 ) -> bool:
     marker = destination / DEPLOYMENT_MARKER
     if not marker.is_file():
@@ -143,7 +165,55 @@ def deployment_is_current(
         actual = json.loads(marker.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return False
-    return actual == deployment_record(device, archive_sha256, launch_mode)
+    return actual == deployment_record(
+        device,
+        archive_sha256,
+        launch_mode,
+        syncthing_plugin_sha256,
+        syncthing_binary_sha256,
+    )
+
+
+def _install_syncthing(
+    staging: Path, plugin_archive: Path, binary_archive: Path
+) -> None:
+    with tempfile.TemporaryDirectory(prefix="koreader-syncthing-") as temporary:
+        extracted = Path(temporary)
+        with zipfile.ZipFile(plugin_archive) as archive:
+            archive.extractall(extracted, members=_safe_zip_members(archive))
+        candidates = ([extracted] if (extracted / "main.lua").is_file() else []) + [
+            path.parent
+            for path in extracted.rglob("main.lua")
+            if path.parent.name == "kosyncthing_plus.koplugin"
+        ]
+        if len(candidates) != 1:
+            raise SafetyError("Syncthing plugin archive has no unique plugin root")
+        destination = staging / "plugins/kosyncthing_plus.koplugin"
+        shutil.copytree(candidates[0], destination, dirs_exist_ok=True)
+
+    with tarfile.open(binary_archive, "r:gz") as archive:
+        candidates = []
+        for member in archive.getmembers():
+            path = PurePosixPath(member.name)
+            if path.is_absolute() or ".." in path.parts or member.issym() or member.islnk():
+                raise SafetyError(
+                    f"Syncthing archive member is unsafe: {member.name}"
+                )
+            if (
+                member.isfile()
+                and path.name == "syncthing"
+                and len(path.parts) == 2
+            ):
+                candidates.append(member)
+        if len(candidates) != 1:
+            raise SafetyError("Syncthing archive has no unique binary")
+        source = archive.extractfile(candidates[0])
+        if source is None:
+            raise SafetyError("Syncthing binary could not be read")
+        binary = staging / "plugins/kosyncthing_plus.koplugin/syncthing"
+        with binary.open("wb") as target:
+            shutil.copyfileobj(source, target)
+        binary.chmod(0o755)
 
 
 def _copy_mutable_state(current: Path, staging: Path) -> None:
@@ -284,11 +354,10 @@ def _remove_macos_metadata(*roots: Path) -> None:
     for root in roots:
         if not root.is_dir():
             continue
-        for path in root.rglob("*"):
-            if path.is_file() and (
-                path.name.startswith("._") or path.name == ".DS_Store"
-            ):
-                path.unlink()
+        for directory, _, files in os.walk(root, onerror=lambda _: None):
+            for name in files:
+                if name.startswith("._") or name == ".DS_Store":
+                    Path(directory, name).unlink(missing_ok=True)
 
 
 def _activate_staging(staging: Path, destination: Path) -> None:
@@ -317,6 +386,8 @@ def stage_koreader(
     authorized_key: Path | None = None,
     library_source: Path | None = None,
     library_sha256: str | None = None,
+    syncthing_plugin: Path | None = None,
+    syncthing_binary: Path | None = None,
 ) -> dict[str, str]:
     mount = require_directory(mount, "reader mount")
     if not device.matches(mount):
@@ -329,10 +400,19 @@ def stage_koreader(
         raise SafetyError(f"unsupported KOReader launch mode: {launch_mode}")
 
     archive_hash = _sha256(archive_path)
+    if (syncthing_plugin is None) != (syncthing_binary is None):
+        raise SafetyError("Syncthing plugin and binary archives must be set together")
+    syncthing_plugin_hash = _sha256(syncthing_plugin) if syncthing_plugin else None
+    syncthing_binary_hash = _sha256(syncthing_binary) if syncthing_binary else None
     destination = under(mount, device.storage.koreader_root)
     destination.parent.mkdir(parents=True, exist_ok=True)
     redeployed = not deployment_is_current(
-        destination, device, archive_hash, launch_mode
+        destination,
+        device,
+        archive_hash,
+        launch_mode,
+        syncthing_plugin_hash,
+        syncthing_binary_hash,
     )
 
     if redeployed:
@@ -350,6 +430,8 @@ def stage_koreader(
 
         _copy_onboard_overlay(staging, device)
         _copy_mutable_state(destination, staging)
+        if syncthing_plugin is not None and syncthing_binary is not None:
+            _install_syncthing(staging, syncthing_plugin, syncthing_binary)
         if not (staging / "reader.lua").is_file() or not (
             staging / "koreader.sh"
         ).is_file():
@@ -358,7 +440,13 @@ def stage_koreader(
         marker = staging / DEPLOYMENT_MARKER
         marker.write_text(
             json.dumps(
-                deployment_record(device, archive_hash, launch_mode),
+                deployment_record(
+                    device,
+                    archive_hash,
+                    launch_mode,
+                    syncthing_plugin_hash,
+                    syncthing_binary_hash,
+                ),
                 indent=2,
                 sort_keys=True,
             )
@@ -426,7 +514,7 @@ def stage_koreader(
         )
         launcher_config = str(launcher)
 
-    _remove_macos_metadata(destination.parent, books_root)
+    _remove_macos_metadata(mount)
 
     ssh_enabled = None
     if device.platform == "kobo" and launch_mode == "autostart":

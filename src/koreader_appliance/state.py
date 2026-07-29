@@ -65,6 +65,8 @@ def plan(
                 device,
                 manifest.koreader.sha256,
                 manifest.launch.mode,
+                manifest.syncthing.plugin.sha256 if manifest.syncthing else None,
+                manifest.syncthing.binary.sha256 if manifest.syncthing else None,
             )
             else "pending",
         ),
@@ -186,6 +188,17 @@ def apply(
     verify_backup_manifest(manifest.backup.manifest, device, mount)
     _verify_pin(manifest.koreader.path, manifest.koreader.sha256, "KOReader archive")
     _verify_pin(manifest.root_package.path, manifest.root_package.sha256, "root package")
+    if manifest.syncthing is not None:
+        _verify_pin(
+            manifest.syncthing.plugin.path,
+            manifest.syncthing.plugin.sha256,
+            "Syncthing plugin archive",
+        )
+        _verify_pin(
+            manifest.syncthing.binary.path,
+            manifest.syncthing.binary.sha256,
+            "Syncthing binary archive",
+        )
 
     before = plan(mount, manifest, device)
     if any(step["status"] == "pending" for step in before):
@@ -200,5 +213,7 @@ def apply(
             manifest.ssh.authorized_key if manifest.ssh is not None else None,
             manifest.library.restore,
             manifest.library.sha256,
+            manifest.syncthing.plugin.path if manifest.syncthing else None,
+            manifest.syncthing.binary.path if manifest.syncthing else None,
         )
     return plan(mount, manifest, device)

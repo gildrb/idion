@@ -36,9 +36,11 @@ return {
     ["ignore_power_sleepcover"] = false,
 
     -- KOReader's maintained Dropbear service is available for diagnostics
-    -- whenever KOReader and Wi-Fi are running. It remains key-only.
+    -- and server snapshots whenever KOReader and Wi-Fi are running. An exit
+    -- patch terminates it before USB storage unmounts the data partition.
     ["SSH_allow_no_password"] = false,
     ["SSH_autostart"] = true,
+    ["SSH_force_kill_clients"] = true,
     ["SSH_key_only_auth"] = true,
     ["SSH_port"] = "2222",
 

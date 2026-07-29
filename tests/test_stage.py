@@ -1,4 +1,6 @@
+import io
 from pathlib import Path
+import tarfile
 import tempfile
 import unittest
 import zipfile
@@ -12,12 +14,56 @@ REPOSITORY = Path(__file__).resolve().parents[1]
 
 
 class StageTests(unittest.TestCase):
+    def test_installs_pinned_syncthing_plugin_and_binary(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            mount = root / "reader"
+            (mount / ".kobo").mkdir(parents=True)
+            (mount / ".kobo/version").write_text("P365\n")
+            archive = root / "koreader.zip"
+            with zipfile.ZipFile(archive, "w") as output:
+                output.writestr("koreader/reader.lua", "return true\n")
+                output.writestr("koreader/koreader.sh", "#!/bin/sh\n")
+            plugin = root / "kosyncthing_plus.koplugin.zip"
+            with zipfile.ZipFile(plugin, "w") as output:
+                output.writestr(
+                    "kosyncthing_plus.koplugin/main.lua", "return true\n"
+                )
+            binary = root / "syncthing-linux-arm.tar.gz"
+            with tarfile.open(binary, "w:gz") as output:
+                content = b"syncthing"
+                member = tarfile.TarInfo("syncthing-linux-arm/syncthing")
+                member.size = len(content)
+                output.addfile(member, io.BytesIO(content))
+            package = root / "KoboRoot.tgz"
+            package.write_bytes(b"nickelmenu")
+            device = Registry(REPOSITORY / "adapters").detect(mount)
+
+            stage_koreader(
+                mount,
+                archive,
+                package,
+                device,
+                launch_mode="nickelmenu",
+                syncthing_plugin=plugin,
+                syncthing_binary=binary,
+            )
+
+            installed = (
+                mount
+                / ".adds/koreader/plugins/kosyncthing_plus.koplugin/syncthing"
+            )
+            self.assertEqual(installed.read_bytes(), b"syncthing")
+            self.assertTrue(installed.stat().st_mode & 0o100)
+
     def test_stages_additively_and_enables_key_only_ssh_boot_marker(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             mount = root / "reader"
             (mount / ".kobo").mkdir(parents=True)
             (mount / ".kobo" / "version").write_text("P365\n")
+            (mount / "._reader").write_bytes(b"metadata")
+            (mount / ".kobo/._version").write_bytes(b"metadata")
             archive = root / "koreader.zip"
             with zipfile.ZipFile(archive, "w") as output:
                 output.writestr("koreader/reader.lua", "return true\n")
@@ -33,6 +79,8 @@ class StageTests(unittest.TestCase):
                 (mount / ".kobo" / "KoboRoot.tgz").read_bytes(), b"root-package"
             )
             self.assertTrue((mount / ".kobo" / "ssh-enabled").is_file())
+            self.assertFalse((mount / "._reader").exists())
+            self.assertFalse((mount / ".kobo/._version").exists())
             self.assertEqual(len(result["installer_sha256"]), 64)
 
     def test_rejects_zip_path_traversal(self) -> None:
@@ -65,7 +113,10 @@ class StageTests(unittest.TestCase):
             profile = root / "base.lua"
             profile.write_text("return { first = true }\n")
             key = root / "reader.pub"
-            key.write_text("ssh-ed25519 AAAATEST reader\n")
+            key.write_text(
+                "ssh-ed25519 AAAATEST reader\n"
+                "ssh-ed25519 AAAASERVER backup-server\n"
+            )
             library = root / "library"
             (library / "Author").mkdir(parents=True)
             (library / "Author/book.epub").write_bytes(b"book")
@@ -113,6 +164,12 @@ class StageTests(unittest.TestCase):
                     encoding="utf-8"
                 ),
             )
+            self.assertIn(
+                "/sbin/reboot",
+                (mount / ".adds/koreader-appliance/koreader-launch.sh").read_text(
+                    encoding="utf-8"
+                ),
+            )
             self.assertFalse((mount / ".adds/nm/koreader-launch.sh").exists())
             self.assertTrue((mount / "Books/Author/book.epub").is_file())
             self.assertFalse((mount / "Books/Author/._book.epub").exists())
@@ -122,7 +179,8 @@ class StageTests(unittest.TestCase):
             )
             self.assertEqual(
                 (mount / ".adds/koreader/settings/SSH/authorized_keys").read_text(),
-                "ssh-ed25519 AAAATEST reader\n",
+                "ssh-ed25519 AAAATEST reader\n"
+                "ssh-ed25519 AAAASERVER backup-server\n",
             )
             self.assertTrue(
                 (

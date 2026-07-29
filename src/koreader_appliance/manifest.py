@@ -50,6 +50,12 @@ class SettingsConfig:
 
 
 @dataclass(frozen=True)
+class SyncthingConfig:
+    plugin: PinnedFile
+    binary: PinnedFile
+
+
+@dataclass(frozen=True)
 class LibraryConfig:
     folders: tuple[str, ...]
     restore: Path | None
@@ -65,6 +71,7 @@ class ApplianceManifest:
     launch: LaunchConfig
     ssh: SSHConfig | None
     settings: SettingsConfig | None
+    syncthing: SyncthingConfig | None
     library: LibraryConfig
     source: Path
 
@@ -90,6 +97,7 @@ class ApplianceManifest:
                     "launch",
                     "ssh",
                     "settings",
+                    "syncthing",
                     "library",
                 },
             )
@@ -99,6 +107,7 @@ class ApplianceManifest:
             launch_data = data.get("launch", {})
             ssh_data = data.get("ssh")
             settings_data = data.get("settings")
+            syncthing_data = data.get("syncthing")
             library_data = data.get("library", {})
             cls._table(koreader_data, {"archive", "sha256"}, "koreader")
             cls._table(root_data, {"path", "sha256"}, "root_package")
@@ -108,6 +117,17 @@ class ApplianceManifest:
                 cls._table(ssh_data, {"authorized_key"}, "ssh")
             if settings_data is not None:
                 cls._table(settings_data, {"profile"}, "settings")
+            if syncthing_data is not None:
+                cls._table(
+                    syncthing_data,
+                    {
+                        "plugin_archive",
+                        "plugin_sha256",
+                        "binary_archive",
+                        "binary_sha256",
+                    },
+                    "syncthing",
+                )
             cls._table(library_data, {"folders", "restore", "sha256"}, "library")
             koreader = KoreaderConfig(
                 path=cls._path(source, koreader_data["archive"], "koreader.archive"),
@@ -124,6 +144,34 @@ class ApplianceManifest:
                     )
                 )
                 if settings_data is not None
+                else None
+            )
+            syncthing = (
+                SyncthingConfig(
+                    plugin=PinnedFile(
+                        path=cls._path(
+                            source,
+                            syncthing_data["plugin_archive"],
+                            "syncthing.plugin_archive",
+                        ),
+                        sha256=cls._hash(
+                            syncthing_data["plugin_sha256"],
+                            "syncthing.plugin_sha256",
+                        ),
+                    ),
+                    binary=PinnedFile(
+                        path=cls._path(
+                            source,
+                            syncthing_data["binary_archive"],
+                            "syncthing.binary_archive",
+                        ),
+                        sha256=cls._hash(
+                            syncthing_data["binary_sha256"],
+                            "syncthing.binary_sha256",
+                        ),
+                    ),
+                )
+                if syncthing_data is not None
                 else None
             )
             library = LibraryConfig(
@@ -161,6 +209,7 @@ class ApplianceManifest:
                     else None
                 ),
                 settings=settings,
+                syncthing=syncthing,
                 library=library,
                 source=source,
             )
