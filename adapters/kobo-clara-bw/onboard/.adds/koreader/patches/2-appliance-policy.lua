@@ -36,6 +36,13 @@ for _, name in ipairs({
     disabled[name] = true
 end
 
+for _, name in ipairs({
+    "kobo_remote",
+    "kosyncthing_plus",
+    "statistics",
+}) do
+    disabled[name] = nil
+end
 G_reader_settings:saveSetting("plugins_disabled", disabled)
 G_reader_settings:saveSetting("SSH_allow_no_password", false)
 G_reader_settings:saveSetting("SSH_autostart", true)
@@ -43,7 +50,7 @@ G_reader_settings:saveSetting("SSH_force_kill_clients", true)
 G_reader_settings:saveSetting("SSH_key_only_auth", true)
 G_reader_settings:saveSetting("SSH_port", "2222")
 
-G_reader_settings:saveSetting("syncthing_autostart_mode", "off")
+G_reader_settings:saveSetting("syncthing_autostart_mode", "wifi")
 G_reader_settings:saveSetting("syncthing_auto_start_charging", false)
 G_reader_settings:saveSetting("syncthing_network_access", "lan")
 G_reader_settings:saveSetting("syncthing_notifications_enabled", true)

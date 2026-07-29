@@ -38,6 +38,19 @@ def _step(action: str, target: Path, status: str) -> dict[str, str]:
     return {"action": action, "target": str(target), "status": status}
 
 
+def _backup_state(
+    manifest: ApplianceManifest, device: Device
+) -> tuple[Path | None, str | None]:
+    backup_manifest = manifest.backup.manifest
+    if not backup_manifest.is_file():
+        return None, None
+    state_source = under(backup_manifest.parent, device.storage.koreader_root)
+    return (
+        state_source if state_source.is_dir() else None,
+        ApplianceManifest.hash_file(backup_manifest),
+    )
+
+
 def plan(
     mount: Path, manifest: ApplianceManifest, device: Device
 ) -> list[dict[str, str]]:
@@ -54,6 +67,7 @@ def plan(
         if device.storage.installer_trigger
         else None
     )
+    _, state_backup_sha256 = _backup_state(manifest, device)
 
     steps = [
         _step(
@@ -67,6 +81,7 @@ def plan(
                 manifest.launch.mode,
                 manifest.syncthing.plugin.sha256 if manifest.syncthing else None,
                 manifest.syncthing.binary.sha256 if manifest.syncthing else None,
+                state_backup_sha256,
             )
             else "pending",
         ),
@@ -186,6 +201,7 @@ def apply(
             f"appliance manifest targets {manifest.device}, detected {device.id}"
         )
     verify_backup_manifest(manifest.backup.manifest, device, mount)
+    state_source, state_backup_sha256 = _backup_state(manifest, device)
     _verify_pin(manifest.koreader.path, manifest.koreader.sha256, "KOReader archive")
     _verify_pin(manifest.root_package.path, manifest.root_package.sha256, "root package")
     if manifest.syncthing is not None:
@@ -215,5 +231,7 @@ def apply(
             manifest.library.sha256,
             manifest.syncthing.plugin.path if manifest.syncthing else None,
             manifest.syncthing.binary.path if manifest.syncthing else None,
+            state_source,
+            state_backup_sha256,
         )
     return plan(mount, manifest, device)

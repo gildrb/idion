@@ -23,20 +23,22 @@ out of the daily path. Nickel remains available as a recovery shell; KOReader
 state is backed up through the local Syncthing service below.
 
 KOReader is replaced transactionally: a complete new tree is copied and
-synced before activation, mutable reading state is carried forward, and the
-previous installation remains at `.adds/koreader.previous`. A power loss or
-bad KOReader build therefore falls back to Nickel instead of compromising the
-Kobo boot path. The Clara BW adapter adds a Bluetooth-only plugin pinned to a
-documented upstream commit; suspend calls have reply deadlines and reconnect
-discovery never sleeps on the UI thread.
+synced before activation, reading state is restored from the verified backup
+and then updated from any newer on-device state, and the previous installation
+remains at `.adds/koreader.previous`. Cache and old policy patches are not
+restored. A power loss or bad KOReader build therefore falls back to Nickel
+instead of compromising the Kobo boot path. The Clara BW adapter adds a
+Bluetooth-only plugin pinned to a documented upstream commit; suspend calls
+have reply deadlines and reconnect discovery never sleeps on the UI thread.
 
 KOReader's maintained Dropbear service provides key-only SSH on port 2222 when
 KOReader and Wi-Fi are running. No password login, rootfs SSH daemon, or
 watchdog is installed.
 
 KOSyncthing+ can be supplied as pinned plugin and Syncthing archives in the
-manifest. The stable policy uses hourly one-shot syncs, LAN-only discovery, and
-the low-resource profile. Configure the server folder as `receiveonly` with
+manifest. The stable policy starts it only when Wi-Fi is already available,
+keeps hourly one-shot sync as a fallback, and uses LAN-only discovery with the
+low-resource profile. Configure the server folder as `receiveonly` with
 staggered versioning; the Kobo folder must be `sendonly`, so a server fault can
 never overwrite the reader.
 

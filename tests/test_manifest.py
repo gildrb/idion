@@ -140,9 +140,14 @@ class ManifestTests(unittest.TestCase):
         mount = root / "reader"
         (mount / ".kobo").mkdir(parents=True)
         (mount / ".kobo" / "version").write_text("P365\n")
+        (mount / ".adds/koreader/settings").mkdir(parents=True)
+        (mount / ".adds/koreader/settings/statistics.sqlite3").write_bytes(
+            b"statistics"
+        )
         backup_destination = root / "backup"
         device = Registry(REPOSITORY / "adapters").detect(mount)
         create_backup(mount, backup_destination, device)
+        shutil.rmtree(mount / ".adds")
 
         archive = root / "reader.zip"
         with zipfile.ZipFile(archive, "w") as output:
@@ -175,6 +180,10 @@ class ManifestTests(unittest.TestCase):
             self.assertTrue(all(step["status"] == "pending" for step in before))
             self.assertTrue(all(step["status"] == "ok" for step in apply(mount, manifest, device)))
             self.assertTrue(all(step["status"] == "ok" for step in apply(mount, manifest, device)))
+            self.assertEqual(
+                (mount / ".adds/koreader/settings/statistics.sqlite3").read_bytes(),
+                b"statistics",
+            )
         finally:
             temporary.cleanup()
 

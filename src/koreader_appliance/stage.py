@@ -67,14 +67,12 @@ BOOK_SUFFIXES = {
     ".rtf",
     ".txt",
 }
-MUTABLE_ENTRIES = (
-    "cache",
+STATE_ENTRIES = (
     "clipboard",
     "data",
     "docsettings",
     "hashdocsettings",
     "history",
-    "patches",
     "screenshots",
     "settings",
     "settings.reader.lua",
@@ -138,15 +136,17 @@ def deployment_record(
     launch_mode: str,
     syncthing_plugin_sha256: str | None = None,
     syncthing_binary_sha256: str | None = None,
+    state_backup_sha256: str | None = None,
 ) -> dict[str, object]:
     return {
-        "schema": 2,
+        "schema": 3,
         "device": device.id,
         "archive_sha256": archive_sha256,
         "overlay_sha256": _tree_hash(_overlay_root(device)),
         "launch_mode": launch_mode,
         "syncthing_plugin_sha256": syncthing_plugin_sha256,
         "syncthing_binary_sha256": syncthing_binary_sha256,
+        "state_backup_sha256": state_backup_sha256,
     }
 
 
@@ -157,6 +157,7 @@ def deployment_is_current(
     launch_mode: str,
     syncthing_plugin_sha256: str | None = None,
     syncthing_binary_sha256: str | None = None,
+    state_backup_sha256: str | None = None,
 ) -> bool:
     marker = destination / DEPLOYMENT_MARKER
     if not marker.is_file():
@@ -171,6 +172,7 @@ def deployment_is_current(
         launch_mode,
         syncthing_plugin_sha256,
         syncthing_binary_sha256,
+        state_backup_sha256,
     )
 
 
@@ -216,11 +218,11 @@ def _install_syncthing(
         binary.chmod(0o755)
 
 
-def _copy_mutable_state(current: Path, staging: Path) -> None:
-    if not current.is_dir():
+def _copy_state(source_root: Path | None, staging: Path) -> None:
+    if source_root is None or not source_root.is_dir():
         return
-    for name in MUTABLE_ENTRIES:
-        source = current / name
+    for name in STATE_ENTRIES:
+        source = source_root / name
         target = staging / name
         if source.is_dir():
             shutil.copytree(
@@ -388,6 +390,8 @@ def stage_koreader(
     library_sha256: str | None = None,
     syncthing_plugin: Path | None = None,
     syncthing_binary: Path | None = None,
+    state_source: Path | None = None,
+    state_backup_sha256: str | None = None,
 ) -> dict[str, str]:
     mount = require_directory(mount, "reader mount")
     if not device.matches(mount):
@@ -413,6 +417,7 @@ def stage_koreader(
         launch_mode,
         syncthing_plugin_hash,
         syncthing_binary_hash,
+        state_backup_sha256,
     )
 
     if redeployed:
@@ -428,8 +433,11 @@ def stage_koreader(
             source = _find_koreader_root(extracted)
             shutil.copytree(source, staging, copy_function=shutil.copyfile)
 
+        # The verified backup fills gaps after a factory reset. Any live state is
+        # newer and wins, while the repository overlay remains authoritative.
+        _copy_state(state_source, staging)
+        _copy_state(destination, staging)
         _copy_onboard_overlay(staging, device)
-        _copy_mutable_state(destination, staging)
         if syncthing_plugin is not None and syncthing_binary is not None:
             _install_syncthing(staging, syncthing_plugin, syncthing_binary)
         if not (staging / "reader.lua").is_file() or not (
@@ -446,6 +454,7 @@ def stage_koreader(
                     launch_mode,
                     syncthing_plugin_hash,
                     syncthing_binary_hash,
+                    state_backup_sha256,
                 ),
                 indent=2,
                 sort_keys=True,

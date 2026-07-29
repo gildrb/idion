@@ -14,6 +14,49 @@ REPOSITORY = Path(__file__).resolve().parents[1]
 
 
 class StageTests(unittest.TestCase):
+    def test_restores_state_without_stale_cache_or_backup_policy(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            mount = root / "reader"
+            (mount / ".kobo").mkdir(parents=True)
+            (mount / ".kobo/version").write_text("P365\n")
+            archive = root / "koreader.zip"
+            with zipfile.ZipFile(archive, "w") as output:
+                output.writestr("koreader/reader.lua", "return true\n")
+                output.writestr("koreader/koreader.sh", "#!/bin/sh\n")
+            package = root / "KoboRoot.tgz"
+            package.write_bytes(b"nickelmenu")
+            state = root / "backup/.adds/koreader"
+            (state / "settings").mkdir(parents=True)
+            (state / "settings/statistics.sqlite3").write_bytes(b"statistics")
+            (state / "docsettings").mkdir()
+            (state / "docsettings/book.lua").write_text("return {}\n")
+            (state / "cache").mkdir()
+            (state / "cache/stale").write_text("discard me\n")
+            (state / "patches").mkdir()
+            (state / "patches/old-policy.lua").write_text("error('stale')\n")
+            device = Registry(REPOSITORY / "adapters").detect(mount)
+
+            stage_koreader(
+                mount,
+                archive,
+                package,
+                device,
+                launch_mode="nickelmenu",
+                state_source=state,
+                state_backup_sha256="a" * 64,
+            )
+
+            installed = mount / ".adds/koreader"
+            self.assertEqual(
+                (installed / "settings/statistics.sqlite3").read_bytes(),
+                b"statistics",
+            )
+            self.assertTrue((installed / "docsettings/book.lua").is_file())
+            self.assertFalse((installed / "cache/stale").exists())
+            self.assertFalse((installed / "patches/old-policy.lua").exists())
+            self.assertTrue((installed / "patches/2-appliance-policy.lua").is_file())
+
     def test_installs_pinned_syncthing_plugin_and_binary(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
