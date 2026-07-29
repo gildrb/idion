@@ -48,6 +48,14 @@ class BluetoothOverlayTests(unittest.TestCase):
             'G_reader_settings:saveSetting("syncthing_network_access", "lan")',
             policy,
         )
+        self.assertIn(
+            'G_reader_settings:saveSetting("syncthing_autostart_mode", "off")',
+            policy,
+        )
+        self.assertIn(
+            'G_reader_settings:saveSetting("syncthing_periodic_sync_enabled", false)',
+            policy,
+        )
         self.assertNotIn('"statistics",', disabled_plugins)
         self.assertNotIn('"kobo_remote",', disabled_plugins)
         self.assertIn("dropbear_koreader.pid", cleanup)

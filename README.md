@@ -36,11 +36,10 @@ KOReader and Wi-Fi are running. No password login, rootfs SSH daemon, or
 watchdog is installed.
 
 KOSyncthing+ can be supplied as pinned plugin and Syncthing archives in the
-manifest. The stable policy starts it only when Wi-Fi is already available,
-keeps hourly one-shot sync as a fallback, and uses LAN-only discovery with the
-low-resource profile. Configure the server folder as `receiveonly` with
-staggered versioning; the Kobo folder must be `sendonly`, so a server fault can
-never overwrite the reader.
+manifest. The stable policy runs it only for an explicit Quick Sync and uses
+LAN-only discovery with the low-resource profile. Configure the server folder
+as `receiveonly` with staggered versioning; the Kobo folder must be `sendonly`,
+so a server fault can never overwrite the reader.
 
 ### Self-hosted Syncthing
 
@@ -54,11 +53,13 @@ syncthing cli config folders kobo-appliance dump-json
 ```
 
 Pair the server with KOSyncthing+, share folder ID `kobo-appliance`, accept it
-at `/mnt/onboard/.adds/koreader`, and set the Kobo side to send-only. The server
-side is receive-only, so it cannot overwrite reader state. This folder contains
-KOReader settings, statistics, bookmarks, and document state. Keep global
-discovery, relays, NAT traversal, crash reporting, and automatic upgrades off;
-leave LAN discovery on. The server uses one-year staggered file versioning.
+at `/mnt/onboard`, and set the Kobo side to send-only. The server side is
+receive-only, so it cannot overwrite the reader. Quick Sync copies books,
+Kobo data, KOReader settings, statistics, bookmarks, and document state while
+ignoring only disposable caches, host metadata, and Syncthing's live index.
+Keep global discovery, relays, NAT traversal, crash reporting, and automatic
+upgrades off; leave LAN discovery on. The server uses one-year staggered file
+versioning.
 
 ### What this does and does not do
 

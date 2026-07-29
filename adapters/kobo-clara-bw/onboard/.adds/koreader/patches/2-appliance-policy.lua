@@ -50,11 +50,11 @@ G_reader_settings:saveSetting("SSH_force_kill_clients", true)
 G_reader_settings:saveSetting("SSH_key_only_auth", true)
 G_reader_settings:saveSetting("SSH_port", "2222")
 
-G_reader_settings:saveSetting("syncthing_autostart_mode", "wifi")
+G_reader_settings:saveSetting("syncthing_autostart_mode", "off")
 G_reader_settings:saveSetting("syncthing_auto_start_charging", false)
 G_reader_settings:saveSetting("syncthing_network_access", "lan")
 G_reader_settings:saveSetting("syncthing_notifications_enabled", true)
-G_reader_settings:saveSetting("syncthing_periodic_sync_enabled", true)
+G_reader_settings:saveSetting("syncthing_periodic_sync_enabled", false)
 G_reader_settings:saveSetting("syncthing_periodic_sync_interval_min", 60)
 G_reader_settings:saveSetting("syncthing_resource_profile", "low")
 

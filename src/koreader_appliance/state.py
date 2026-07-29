@@ -10,6 +10,7 @@ from .stage import (
     EXCLUDE_SYNC_FOLDERS,
     NICKELMENU_CONFIG,
     NICKELMENU_LAUNCHER,
+    SYNCTHING_IGNORE,
     deployment_is_current,
     library_is_current,
     stage_koreader,
@@ -121,6 +122,18 @@ def plan(
                 if expected_key is not None
                 and authorized_keys.is_file()
                 and authorized_keys.read_text(encoding="utf-8") == expected_key
+                else "pending",
+            )
+        )
+    if manifest.syncthing is not None:
+        ignore_file = under(mount, ".stignore")
+        steps.append(
+            _step(
+                "syncthing-ignore-policy",
+                ignore_file,
+                "ok"
+                if ignore_file.is_file()
+                and ignore_file.read_text(encoding="utf-8") == SYNCTHING_IGNORE
                 else "pending",
             )
         )

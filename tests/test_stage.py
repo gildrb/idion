@@ -7,7 +7,11 @@ import zipfile
 
 from koreader_appliance.registry import Registry
 from koreader_appliance.safety import SafetyError
-from koreader_appliance.stage import library_tree_hash, stage_koreader
+from koreader_appliance.stage import (
+    SYNCTHING_IGNORE,
+    library_tree_hash,
+    stage_koreader,
+)
 
 
 REPOSITORY = Path(__file__).resolve().parents[1]
@@ -98,6 +102,7 @@ class StageTests(unittest.TestCase):
             )
             self.assertEqual(installed.read_bytes(), b"syncthing")
             self.assertTrue(installed.stat().st_mode & 0o100)
+            self.assertEqual((mount / ".stignore").read_text(), SYNCTHING_IGNORE)
 
     def test_stages_additively_and_enables_key_only_ssh_boot_marker(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

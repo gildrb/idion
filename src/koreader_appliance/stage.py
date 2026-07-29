@@ -53,6 +53,21 @@ exit 1
 DEPLOYMENT_MARKER = ".koreader-appliance.json"
 LIBRARY_MARKER = ".adds/koreader-appliance/library.json"
 EXCLUDE_SYNC_FOLDERS = r"(\.(?!kobo|adobe).+|([^.][^/]*/)+\..+)"
+SYNCTHING_IGNORE = """(?d).Spotlight-V100
+(?d).TemporaryItems
+(?d).Trashes
+(?d).fseventsd
+(?d)**/.DS_Store
+(?d)**/._*
+(?d).adds/koreader/cache
+(?d).adds/koreader/settings/syncthing/index-v2
+(?d).adds/koreader/settings/syncthing/main.db
+(?d).adds/koreader/settings/syncthing/main.db-shm
+(?d).adds/koreader/settings/syncthing/main.db-wal
+(?d).adds/koreader/settings/syncthing/syncthing.lock
+(?d).adds/koreader/settings/syncthing/syncthing.log
+(?d).adds/koreader/settings/syncthing/syncthing.log.*
+"""
 BOOK_SUFFIXES = {
     ".cbr",
     ".cbz",
@@ -464,6 +479,9 @@ def stage_koreader(
         )
         _fsync_tree(staging)
         _activate_staging(staging, destination)
+
+    if syncthing_plugin is not None and syncthing_binary is not None:
+        _atomic_text(under(mount, ".stignore"), SYNCTHING_IGNORE)
 
     trigger = under(mount, device.storage.installer_trigger)
     _atomic_copy(root_package, trigger)
