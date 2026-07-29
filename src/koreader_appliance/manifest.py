@@ -72,6 +72,7 @@ class ApplianceManifest:
     ssh: SSHConfig | None
     settings: SettingsConfig | None
     syncthing: SyncthingConfig | None
+    reading_streak: PinnedFile | None
     library: LibraryConfig
     source: Path
 
@@ -98,6 +99,7 @@ class ApplianceManifest:
                     "ssh",
                     "settings",
                     "syncthing",
+                    "reading_streak",
                     "library",
                 },
             )
@@ -108,6 +110,7 @@ class ApplianceManifest:
             ssh_data = data.get("ssh")
             settings_data = data.get("settings")
             syncthing_data = data.get("syncthing")
+            reading_streak_data = data.get("reading_streak")
             library_data = data.get("library", {})
             cls._table(koreader_data, {"archive", "sha256"}, "koreader")
             cls._table(root_data, {"path", "sha256"}, "root_package")
@@ -127,6 +130,12 @@ class ApplianceManifest:
                         "binary_sha256",
                     },
                     "syncthing",
+                )
+            if reading_streak_data is not None:
+                cls._table(
+                    reading_streak_data,
+                    {"plugin_archive", "plugin_sha256"},
+                    "reading_streak",
                 )
             cls._table(library_data, {"folders", "restore", "sha256"}, "library")
             koreader = KoreaderConfig(
@@ -174,6 +183,21 @@ class ApplianceManifest:
                 if syncthing_data is not None
                 else None
             )
+            reading_streak = (
+                PinnedFile(
+                    path=cls._path(
+                        source,
+                        reading_streak_data["plugin_archive"],
+                        "reading_streak.plugin_archive",
+                    ),
+                    sha256=cls._hash(
+                        reading_streak_data["plugin_sha256"],
+                        "reading_streak.plugin_sha256",
+                    ),
+                )
+                if reading_streak_data is not None
+                else None
+            )
             library = LibraryConfig(
                 folders=cls._folders(library_data.get("folders", DEFAULT_LIBRARY_FOLDERS)),
                 restore=cls._path(source, library_data["restore"], "library.restore")
@@ -210,6 +234,7 @@ class ApplianceManifest:
                 ),
                 settings=settings,
                 syncthing=syncthing,
+                reading_streak=reading_streak,
                 library=library,
                 source=source,
             )

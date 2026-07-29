@@ -39,6 +39,7 @@ end
 for _, name in ipairs({
     "kobo_remote",
     "kosyncthing_plus",
+    "readingstreak",
     "statistics",
 }) do
     disabled[name] = nil

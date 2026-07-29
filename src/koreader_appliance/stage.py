@@ -151,16 +151,18 @@ def deployment_record(
     launch_mode: str,
     syncthing_plugin_sha256: str | None = None,
     syncthing_binary_sha256: str | None = None,
+    reading_streak_sha256: str | None = None,
     state_backup_sha256: str | None = None,
 ) -> dict[str, object]:
     return {
-        "schema": 3,
+        "schema": 4,
         "device": device.id,
         "archive_sha256": archive_sha256,
         "overlay_sha256": _tree_hash(_overlay_root(device)),
         "launch_mode": launch_mode,
         "syncthing_plugin_sha256": syncthing_plugin_sha256,
         "syncthing_binary_sha256": syncthing_binary_sha256,
+        "reading_streak_sha256": reading_streak_sha256,
         "state_backup_sha256": state_backup_sha256,
     }
 
@@ -172,6 +174,7 @@ def deployment_is_current(
     launch_mode: str,
     syncthing_plugin_sha256: str | None = None,
     syncthing_binary_sha256: str | None = None,
+    reading_streak_sha256: str | None = None,
     state_backup_sha256: str | None = None,
 ) -> bool:
     marker = destination / DEPLOYMENT_MARKER
@@ -187,6 +190,7 @@ def deployment_is_current(
         launch_mode,
         syncthing_plugin_sha256,
         syncthing_binary_sha256,
+        reading_streak_sha256,
         state_backup_sha256,
     )
 
@@ -231,6 +235,23 @@ def _install_syncthing(
         with binary.open("wb") as target:
             shutil.copyfileobj(source, target)
         binary.chmod(0o755)
+
+
+def _install_reading_streak(staging: Path, plugin_archive: Path) -> None:
+    with tempfile.TemporaryDirectory(prefix="koreader-reading-streak-") as temporary:
+        extracted = Path(temporary)
+        with zipfile.ZipFile(plugin_archive) as archive:
+            archive.extractall(extracted, members=_safe_zip_members(archive))
+        candidates = [
+            path.parent
+            for path in extracted.rglob("main.lua")
+            if path.parent.name == "readingstreak.koplugin"
+            or path.parent.name.startswith("readingstreak.koplugin-")
+        ]
+        if len(candidates) != 1:
+            raise SafetyError("Reading Streak archive has no unique plugin root")
+        destination = staging / "plugins/readingstreak.koplugin"
+        shutil.copytree(candidates[0], destination, dirs_exist_ok=True)
 
 
 def _copy_state(source_root: Path | None, staging: Path) -> None:
@@ -405,6 +426,7 @@ def stage_koreader(
     library_sha256: str | None = None,
     syncthing_plugin: Path | None = None,
     syncthing_binary: Path | None = None,
+    reading_streak_plugin: Path | None = None,
     state_source: Path | None = None,
     state_backup_sha256: str | None = None,
 ) -> dict[str, str]:
@@ -423,6 +445,9 @@ def stage_koreader(
         raise SafetyError("Syncthing plugin and binary archives must be set together")
     syncthing_plugin_hash = _sha256(syncthing_plugin) if syncthing_plugin else None
     syncthing_binary_hash = _sha256(syncthing_binary) if syncthing_binary else None
+    reading_streak_hash = (
+        _sha256(reading_streak_plugin) if reading_streak_plugin else None
+    )
     destination = under(mount, device.storage.koreader_root)
     destination.parent.mkdir(parents=True, exist_ok=True)
     redeployed = not deployment_is_current(
@@ -432,6 +457,7 @@ def stage_koreader(
         launch_mode,
         syncthing_plugin_hash,
         syncthing_binary_hash,
+        reading_streak_hash,
         state_backup_sha256,
     )
 
@@ -455,6 +481,8 @@ def stage_koreader(
         _copy_onboard_overlay(staging, device)
         if syncthing_plugin is not None and syncthing_binary is not None:
             _install_syncthing(staging, syncthing_plugin, syncthing_binary)
+        if reading_streak_plugin is not None:
+            _install_reading_streak(staging, reading_streak_plugin)
         if not (staging / "reader.lua").is_file() or not (
             staging / "koreader.sh"
         ).is_file():
@@ -469,6 +497,7 @@ def stage_koreader(
                     launch_mode,
                     syncthing_plugin_hash,
                     syncthing_binary_hash,
+                    reading_streak_hash,
                     state_backup_sha256,
                 ),
                 indent=2,

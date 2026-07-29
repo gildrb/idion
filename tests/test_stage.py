@@ -18,6 +18,37 @@ REPOSITORY = Path(__file__).resolve().parents[1]
 
 
 class StageTests(unittest.TestCase):
+    def test_installs_pinned_reading_streak_plugin(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            mount = root / "reader"
+            (mount / ".kobo").mkdir(parents=True)
+            (mount / ".kobo/version").write_text("P365\n")
+            archive = root / "koreader.zip"
+            with zipfile.ZipFile(archive, "w") as output:
+                output.writestr("koreader/reader.lua", "return true\n")
+                output.writestr("koreader/koreader.sh", "#!/bin/sh\n")
+            plugin = root / "readingstreak.zip"
+            with zipfile.ZipFile(plugin, "w") as output:
+                output.writestr(
+                    "readingstreak.koplugin-1.3.6/main.lua", "return true\n"
+                )
+            package = root / "KoboRoot.tgz"
+            package.write_bytes(b"nickelmenu")
+            device = Registry(REPOSITORY / "adapters").detect(mount)
+
+            stage_koreader(
+                mount,
+                archive,
+                package,
+                device,
+                launch_mode="nickelmenu",
+                reading_streak_plugin=plugin,
+            )
+
+            installed = mount / ".adds/koreader/plugins/readingstreak.koplugin/main.lua"
+            self.assertEqual(installed.read_text(), "return true\n")
+
     def test_restores_state_without_stale_cache_or_backup_policy(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

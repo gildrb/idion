@@ -82,6 +82,7 @@ def plan(
                 manifest.launch.mode,
                 manifest.syncthing.plugin.sha256 if manifest.syncthing else None,
                 manifest.syncthing.binary.sha256 if manifest.syncthing else None,
+                manifest.reading_streak.sha256 if manifest.reading_streak else None,
                 state_backup_sha256,
             )
             else "pending",
@@ -135,6 +136,15 @@ def plan(
                 if ignore_file.is_file()
                 and ignore_file.read_text(encoding="utf-8") == SYNCTHING_IGNORE
                 else "pending",
+            )
+        )
+    if manifest.reading_streak is not None:
+        plugin_root = koreader_root / "plugins/readingstreak.koplugin"
+        steps.append(
+            _step(
+                "reading-streak-plugin",
+                plugin_root,
+                "ok" if (plugin_root / "main.lua").is_file() else "pending",
             )
         )
     steps.extend(
@@ -228,6 +238,12 @@ def apply(
             manifest.syncthing.binary.sha256,
             "Syncthing binary archive",
         )
+    if manifest.reading_streak is not None:
+        _verify_pin(
+            manifest.reading_streak.path,
+            manifest.reading_streak.sha256,
+            "Reading Streak plugin archive",
+        )
 
     before = plan(mount, manifest, device)
     if any(step["status"] == "pending" for step in before):
@@ -244,6 +260,7 @@ def apply(
             manifest.library.sha256,
             manifest.syncthing.plugin.path if manifest.syncthing else None,
             manifest.syncthing.binary.path if manifest.syncthing else None,
+            manifest.reading_streak.path if manifest.reading_streak else None,
             state_source,
             state_backup_sha256,
         )
