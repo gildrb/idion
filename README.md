@@ -17,9 +17,10 @@ After a normal boot, launch KOReader with one tap from NickelMenu. This removes
 the custom boot takeover from the daily reliability path.
 
 The generated `KoboRoot.tgz` contains only NickelMenu's pinned upstream binary
-and a stock-compatible `/etc/hosts`. Kobo account, store, library sync, and
-firmware updates remain available. It does not install the autostart manager
-or root SSH watchdog.
+and a stock-compatible `/etc/hosts`. The stable profile intentionally enables
+Kobo's sideloaded mode, so account/store sync and firmware update traffic stay
+out of the daily path. Nickel remains available as a recovery shell; KOReader
+state is backed up through the local Syncthing service below.
 
 KOReader is replaced transactionally: a complete new tree is copied and
 synced before activation, mutable reading state is carried forward, and the
@@ -50,8 +51,10 @@ systemctl --user enable --now syncthing.service
 syncthing cli config folders kobo-appliance dump-json
 ```
 
-Pair the server with KOSyncthing+, share folder ID `kobo-appliance`, then set
-the Kobo side to send-only and the server side to receive-only. Keep global
+Pair the server with KOSyncthing+, share folder ID `kobo-appliance`, accept it
+at `/mnt/onboard/.adds/koreader`, and set the Kobo side to send-only. The server
+side is receive-only, so it cannot overwrite reader state. This folder contains
+KOReader settings, statistics, bookmarks, and document state. Keep global
 discovery, relays, NAT traversal, crash reporting, and automatic upgrades off;
 leave LAN discovery on. The server uses one-year staggered file versioning.
 

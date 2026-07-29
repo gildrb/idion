@@ -177,6 +177,10 @@ class StageTests(unittest.TestCase):
                 "ExcludeSyncFolders=",
                 (mount / ".kobo/Kobo/Kobo eReader.conf").read_text(),
             )
+            self.assertIn(
+                "SideloadedMode=true",
+                (mount / ".kobo/Kobo/Kobo eReader.conf").read_text(),
+            )
             self.assertEqual(
                 (mount / ".adds/koreader/settings/SSH/authorized_keys").read_text(),
                 "ssh-ed25519 AAAATEST reader\n"

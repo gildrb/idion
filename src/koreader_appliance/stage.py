@@ -512,6 +512,12 @@ def stage_koreader(
             "ExcludeSyncFolders",
             EXCLUDE_SYNC_FOLDERS,
         )
+        _set_ini_value(
+            under(mount, ".kobo/Kobo/Kobo eReader.conf"),
+            "ApplicationPreferences",
+            "SideloadedMode",
+            "true",
+        )
         launcher_config = str(launcher)
 
     _remove_macos_metadata(mount)
