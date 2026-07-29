@@ -11,8 +11,29 @@ sha256 = "1111111111111111111111111111111111111111111111111111111111111111"
 [backup]
 manifest = "/path/to/ReaderBackups/clara-before/backup-manifest.json"
 
+[launch]
+# "nickelmenu" is the conservative default for reliable sleep/wake behavior.
+# Use "autostart" only after the device passes the physical acceptance gates.
+mode = "nickelmenu"
+
+[ssh]
+authorized_key = "~/.ssh/id_reader.pub"
+
 [settings]
 profile = "base.lua"
 
+[syncthing]
+plugin_archive = "/path/to/kosyncthing_plus.koplugin.zip"
+plugin_sha256 = "2222222222222222222222222222222222222222222222222222222222222222"
+binary_archive = "/path/to/syncthing-linux-arm.tar.gz"
+binary_sha256 = "3333333333333333333333333333333333333333333333333333333333333333"
+
+[reading_streak]
+plugin_archive = "/path/to/readingstreak.koplugin.zip"
+plugin_sha256 = "4444444444444444444444444444444444444444444444444444444444444444"
+
 [library]
 folders = ["Programming", "Linux", "Math", "Papers", "Manuals"]
+# Optional verified import from an off-device library directory.
+# restore = "/path/to/ReaderBackups/library"
+# sha256 = "5555555555555555555555555555555555555555555555555555555555555555"

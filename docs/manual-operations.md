@@ -9,12 +9,15 @@ koreader-appliance backup /Volumes/KOBOeReader ~/ReaderBackups/clara-before
 koreader-appliance stage /Volumes/KOBOeReader \
   --koreader ~/Downloads/koreader-kobo.zip \
   --root-package ~/ReaderBuilds/clara/KoboRoot.tgz \
-  --backup-manifest ~/ReaderBackups/clara-before/backup-manifest.json
+  --backup-manifest ~/ReaderBackups/clara-before/backup-manifest.json \
+  --launch-mode nickelmenu \
+  --authorized-key ~/.ssh/id_reader.pub
 ```
 
-Staging is additive. It creates library folders, places settings under
-`settings.reader.lua.pending`, and does not eject, reboot, delete, or toggle
-Wi-Fi.
+NickelMenu staging writes a complete `.adds/koreader.staging` tree, syncs it,
+preserves mutable state, activates it, and retains the previous tree. It also
+creates library folders and the NickelMenu launch entry. It does not eject,
+reboot, or toggle Wi-Fi.
 
 ### Plan and apply
 
@@ -26,11 +29,13 @@ koreader-appliance apply /Volumes/KOBOeReader \
 ```
 
 `plan` is read-only. `apply` detects the adapter, verifies the backup and both
-SHA-256 pins, then performs only additive staging. Re-running it is a no-op.
+SHA-256 pins, then converges the declared state. Re-running it preserves
+current KOReader settings and does not redeploy an unchanged KOReader tree.
 
 ### Live validation
 
-Run validation after the reader boots and Wi-Fi is manually enabled:
+Run validation after KOReader launches and Wi-Fi is manually enabled. The
+stable profile uses KOReader SSH on port 2222 rather than rootfs OpenSSH:
 
 ```sh
 koreader-appliance validate-live \
@@ -45,7 +50,7 @@ rsync. It does not toggle Wi-Fi, reboot, or claim to see physical hardware.
 
 ### Recovery
 
-To disable KOReader autostart, use the recovery command or create
-`/mnt/onboard/.kobo/KOReader-autostart-disabled` while the reader is mounted.
-Keep the off-device backup for a full restore. See
-[recovery](recovery.md) for the reachable and USB recovery paths.
+The stable profile never autostarts KOReader. Exit KOReader or reboot to reach
+Nickel. If a new KOReader tree fails, restore `.adds/koreader.previous` or
+re-run setup with the last pinned archive. Keep the off-device backup for a
+full restore. See [recovery](recovery.md).

@@ -8,6 +8,26 @@ from .model import Device
 from .safety import SafetyError
 
 
+def read_authorized_key(path: Path) -> str:
+    source = path.expanduser().resolve()
+    if not source.is_file():
+        raise SafetyError(f"authorized public key is not readable: {source}")
+    lines = [
+        line.strip()
+        for line in source.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    if not lines or any(
+        not line.startswith(("ssh-", "sk-ssh-", "ecdsa-")) for line in lines
+    ):
+        raise SafetyError(
+            "authorized key file must contain only OpenSSH public keys"
+        )
+    if len(set(lines)) != len(lines):
+        raise SafetyError("authorized key file contains duplicate public keys")
+    return "\n".join(lines) + "\n"
+
+
 def public_key_and_fingerprint(path: Path) -> tuple[str, str]:
     path = path.expanduser().resolve()
     if not path.is_file():

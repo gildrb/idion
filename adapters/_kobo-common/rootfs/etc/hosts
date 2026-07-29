@@ -1,26 +1,2 @@
 127.0.0.1 localhost localhost.localdomain @HOSTNAME@
 ::1 localhost localhost.localdomain
-
-# Kobo/Rakuten store, account, sync, update, and analytics endpoints.
-# KOReader networking, dictionaries, Wikipedia, SSH, and user-selected services
-# remain unrestricted.
-0.0.0.0 api.kobobooks.com
-0.0.0.0 auth.kobobooks.com
-0.0.0.0 authorize.kobo.com
-0.0.0.0 device.kobo.com
-0.0.0.0 download.kobobooks.com
-0.0.0.0 ereaderfiles.kobo.com
-0.0.0.0 firmware.kobo.com
-0.0.0.0 images.kobo.com
-0.0.0.0 kobo.com
-0.0.0.0 oauth.kobo.com
-0.0.0.0 readingservices.kobo.com
-0.0.0.0 smetrics.kobo.com
-0.0.0.0 social.kobobooks.com
-0.0.0.0 storeapi.kobo.com
-0.0.0.0 www.kobo.com
-0.0.0.0 books.rakuten.co.jp
-0.0.0.0 my.rakuten.co.jp
-0.0.0.0 cdn.kobo.com
-0.0.0.0 ssl.google-analytics.com
-0.0.0.0 www.google-analytics.com

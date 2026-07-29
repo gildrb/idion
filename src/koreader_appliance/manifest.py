@@ -35,13 +35,31 @@ class BackupConfig:
 
 
 @dataclass(frozen=True)
+class LaunchConfig:
+    mode: str
+
+
+@dataclass(frozen=True)
+class SSHConfig:
+    authorized_key: Path
+
+
+@dataclass(frozen=True)
 class SettingsConfig:
     profile: Path
 
 
 @dataclass(frozen=True)
+class SyncthingConfig:
+    plugin: PinnedFile
+    binary: PinnedFile
+
+
+@dataclass(frozen=True)
 class LibraryConfig:
     folders: tuple[str, ...]
+    restore: Path | None
+    sha256: str | None
 
 
 @dataclass(frozen=True)
@@ -50,7 +68,11 @@ class ApplianceManifest:
     koreader: KoreaderConfig
     root_package: RootPackageConfig
     backup: BackupConfig
+    launch: LaunchConfig
+    ssh: SSHConfig | None
     settings: SettingsConfig | None
+    syncthing: SyncthingConfig | None
+    reading_streak: PinnedFile | None
     library: LibraryConfig
     source: Path
 
@@ -68,19 +90,54 @@ class ApplianceManifest:
         try:
             cls._table(
                 data,
-                {"device", "koreader", "root_package", "backup", "settings", "library"},
+                {
+                    "device",
+                    "koreader",
+                    "root_package",
+                    "backup",
+                    "launch",
+                    "ssh",
+                    "settings",
+                    "syncthing",
+                    "reading_streak",
+                    "library",
+                },
             )
             koreader_data = data["koreader"]
             root_data = data["root_package"]
             backup_data = data["backup"]
+            launch_data = data.get("launch", {})
+            ssh_data = data.get("ssh")
             settings_data = data.get("settings")
+            syncthing_data = data.get("syncthing")
+            reading_streak_data = data.get("reading_streak")
             library_data = data.get("library", {})
             cls._table(koreader_data, {"archive", "sha256"}, "koreader")
             cls._table(root_data, {"path", "sha256"}, "root_package")
             cls._table(backup_data, {"manifest"}, "backup")
+            cls._table(launch_data, {"mode"}, "launch")
+            if ssh_data is not None:
+                cls._table(ssh_data, {"authorized_key"}, "ssh")
             if settings_data is not None:
                 cls._table(settings_data, {"profile"}, "settings")
-            cls._table(library_data, {"folders"}, "library")
+            if syncthing_data is not None:
+                cls._table(
+                    syncthing_data,
+                    {
+                        "plugin_archive",
+                        "plugin_sha256",
+                        "binary_archive",
+                        "binary_sha256",
+                    },
+                    "syncthing",
+                )
+            if reading_streak_data is not None:
+                cls._table(
+                    reading_streak_data,
+                    {"plugin_archive", "plugin_sha256"},
+                    "reading_streak",
+                )
+            cls._table(library_data, {"folders", "restore", "sha256"}, "library")
             koreader = KoreaderConfig(
                 path=cls._path(source, koreader_data["archive"], "koreader.archive"),
                 sha256=cls._hash(koreader_data["sha256"], "koreader.sha256"),
@@ -98,8 +155,57 @@ class ApplianceManifest:
                 if settings_data is not None
                 else None
             )
+            syncthing = (
+                SyncthingConfig(
+                    plugin=PinnedFile(
+                        path=cls._path(
+                            source,
+                            syncthing_data["plugin_archive"],
+                            "syncthing.plugin_archive",
+                        ),
+                        sha256=cls._hash(
+                            syncthing_data["plugin_sha256"],
+                            "syncthing.plugin_sha256",
+                        ),
+                    ),
+                    binary=PinnedFile(
+                        path=cls._path(
+                            source,
+                            syncthing_data["binary_archive"],
+                            "syncthing.binary_archive",
+                        ),
+                        sha256=cls._hash(
+                            syncthing_data["binary_sha256"],
+                            "syncthing.binary_sha256",
+                        ),
+                    ),
+                )
+                if syncthing_data is not None
+                else None
+            )
+            reading_streak = (
+                PinnedFile(
+                    path=cls._path(
+                        source,
+                        reading_streak_data["plugin_archive"],
+                        "reading_streak.plugin_archive",
+                    ),
+                    sha256=cls._hash(
+                        reading_streak_data["plugin_sha256"],
+                        "reading_streak.plugin_sha256",
+                    ),
+                )
+                if reading_streak_data is not None
+                else None
+            )
             library = LibraryConfig(
-                folders=cls._folders(library_data.get("folders", DEFAULT_LIBRARY_FOLDERS))
+                folders=cls._folders(library_data.get("folders", DEFAULT_LIBRARY_FOLDERS)),
+                restore=cls._path(source, library_data["restore"], "library.restore")
+                if "restore" in library_data
+                else None,
+                sha256=cls._hash(library_data["sha256"], "library.sha256")
+                if "sha256" in library_data
+                else None,
             )
             manifest = cls(
                 device=cls._string(data["device"], "device"),
@@ -110,7 +216,25 @@ class ApplianceManifest:
                         source, backup_data["manifest"], "backup.manifest"
                     )
                 ),
+                launch=LaunchConfig(
+                    mode=cls._string(
+                        launch_data.get("mode", "autostart"), "launch.mode"
+                    )
+                ),
+                ssh=(
+                    SSHConfig(
+                        authorized_key=cls._path(
+                            source,
+                            ssh_data["authorized_key"],
+                            "ssh.authorized_key",
+                        )
+                    )
+                    if ssh_data is not None
+                    else None
+                ),
                 settings=settings,
+                syncthing=syncthing,
+                reading_streak=reading_streak,
                 library=library,
                 source=source,
             )
@@ -177,6 +301,12 @@ class ApplianceManifest:
             raise SafetyError("appliance manifest device is empty")
         if not self.library.folders:
             raise SafetyError("library.folders must not be empty")
+        if (self.library.restore is None) != (self.library.sha256 is None):
+            raise SafetyError("library.restore and library.sha256 must be set together")
+        if self.launch.mode not in {"autostart", "nickelmenu"}:
+            raise SafetyError(
+                "launch.mode must be either 'autostart' or 'nickelmenu'"
+            )
 
     @staticmethod
     def hash_file(path: Path) -> str:

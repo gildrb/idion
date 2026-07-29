@@ -38,11 +38,87 @@ class ManifestTests(unittest.TestCase):
                 encoding="utf-8",
             )
             manifest = ApplianceManifest.from_toml(manifest_path)
-            self.assertEqual(manifest.koreader.path, root / "koreader.zip")
+            self.assertEqual(manifest.koreader.path, (root / "koreader.zip").resolve())
             self.assertEqual(
                 manifest.library.folders,
                 ("Programming", "Linux", "Math", "Papers", "Manuals"),
             )
+            self.assertIsNone(manifest.library.restore)
+            self.assertIsNone(manifest.library.sha256)
+            self.assertIsNone(manifest.syncthing)
+            self.assertIsNone(manifest.reading_streak)
+
+    def test_parses_pinned_reading_streak_archive(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            path = root / "appliance.toml"
+            path.write_text(
+                'device = "kobo-clara-bw"\n'
+                '[koreader]\narchive = "reader.zip"\nsha256 = "'
+                + "a" * 64
+                + '"\n[root_package]\npath = "root.tgz"\nsha256 = "'
+                + "b" * 64
+                + '"\n[backup]\nmanifest = "backup.json"\n'
+                + '[reading_streak]\nplugin_archive = "streak.zip"\nplugin_sha256 = "'
+                + "c" * 64
+                + '"\n',
+                encoding="utf-8",
+            )
+
+            manifest = ApplianceManifest.from_toml(path)
+
+            self.assertEqual(
+                manifest.reading_streak.path, (root / "streak.zip").resolve()
+            )
+            self.assertEqual(manifest.reading_streak.sha256, "c" * 64)
+
+    def test_parses_pinned_syncthing_archives(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            path = root / "appliance.toml"
+            path.write_text(
+                'device = "kobo-clara-bw"\n'
+                '[koreader]\narchive = "reader.zip"\nsha256 = "'
+                + "a" * 64
+                + '"\n[root_package]\npath = "root.tgz"\nsha256 = "'
+                + "b" * 64
+                + '"\n[backup]\nmanifest = "backup.json"\n'
+                + '[syncthing]\nplugin_archive = "plugin.zip"\nplugin_sha256 = "'
+                + "c" * 64
+                + '"\nbinary_archive = "syncthing.tar.gz"\nbinary_sha256 = "'
+                + "d" * 64
+                + '"\n',
+                encoding="utf-8",
+            )
+
+            manifest = ApplianceManifest.from_toml(path)
+
+            self.assertEqual(
+                manifest.syncthing.plugin.path, (root / "plugin.zip").resolve()
+            )
+            self.assertEqual(manifest.syncthing.binary.sha256, "d" * 64)
+
+    def test_parses_pinned_library_restore(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            path = root / "appliance.toml"
+            path.write_text(
+                'device = "kobo-clara-bw"\n'
+                '[koreader]\narchive = "reader.zip"\nsha256 = "'
+                + "a" * 64
+                + '"\n[root_package]\npath = "root.tgz"\nsha256 = "'
+                + "b" * 64
+                + '"\n[backup]\nmanifest = "backup.json"\n'
+                + '[library]\nrestore = "library"\nsha256 = "'
+                + "c" * 64
+                + '"\n',
+                encoding="utf-8",
+            )
+
+            manifest = ApplianceManifest.from_toml(path)
+
+            self.assertEqual(manifest.library.restore, (root / "library").resolve())
+            self.assertEqual(manifest.library.sha256, "c" * 64)
 
     def test_rejects_missing_required_pin(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -89,13 +165,19 @@ class ManifestTests(unittest.TestCase):
         mount = root / "reader"
         (mount / ".kobo").mkdir(parents=True)
         (mount / ".kobo" / "version").write_text("P365\n")
+        (mount / ".adds/koreader/settings").mkdir(parents=True)
+        (mount / ".adds/koreader/settings/statistics.sqlite3").write_bytes(
+            b"statistics"
+        )
         backup_destination = root / "backup"
         device = Registry(REPOSITORY / "adapters").detect(mount)
         create_backup(mount, backup_destination, device)
+        shutil.rmtree(mount / ".adds")
 
         archive = root / "reader.zip"
         with zipfile.ZipFile(archive, "w") as output:
             output.writestr("koreader/reader.lua", "return true\n")
+            output.writestr("koreader/koreader.sh", "#!/bin/sh\n")
         package = root / "root.tgz"
         package.write_bytes(b"root-package")
         settings = root / "settings.lua"
@@ -123,8 +205,35 @@ class ManifestTests(unittest.TestCase):
             self.assertTrue(all(step["status"] == "pending" for step in before))
             self.assertTrue(all(step["status"] == "ok" for step in apply(mount, manifest, device)))
             self.assertTrue(all(step["status"] == "ok" for step in apply(mount, manifest, device)))
+            self.assertEqual(
+                (mount / ".adds/koreader/settings/statistics.sqlite3").read_bytes(),
+                b"statistics",
+            )
         finally:
             temporary.cleanup()
+
+    def test_parses_nickelmenu_launch_and_ssh_key(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            manifest_path = root / "appliance.toml"
+            manifest_path.write_text(
+                'device = "kobo-clara-bw"\n'
+                '[koreader]\narchive = "reader.zip"\nsha256 = "'
+                + "a" * 64
+                + '"\n[root_package]\npath = "root.tgz"\nsha256 = "'
+                + "b" * 64
+                + '"\n[backup]\nmanifest = "backup.json"\n'
+                '[launch]\nmode = "nickelmenu"\n'
+                '[ssh]\nauthorized_key = "reader.pub"\n',
+                encoding="utf-8",
+            )
+
+            manifest = ApplianceManifest.from_toml(manifest_path)
+
+            self.assertEqual(manifest.launch.mode, "nickelmenu")
+            self.assertEqual(
+                manifest.ssh.authorized_key, (root / "reader.pub").resolve()
+            )
 
     def test_setup_creates_declared_backup_before_apply(self) -> None:
         temporary, manifest, device = self._fixture()
