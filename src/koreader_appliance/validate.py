@@ -46,6 +46,135 @@ def _fingerprint(value: str) -> str:
     return match.group(0)
 
 
+def _validate_nickelmenu(
+    host: str,
+    manifest: dict[str, object],
+    evidence: Path,
+) -> dict[str, object]:
+    passes: list[str] = []
+    failures: list[str] = []
+
+    def check(condition: bool, label: str) -> None:
+        (passes if condition else failures).append(label)
+
+    settings = _effective_ssh(host)
+    policy = {
+        "stricthostkeychecking": _first(settings, "stricthostkeychecking"),
+        "identitiesonly": _first(settings, "identitiesonly"),
+        "passwordauthentication": _first(settings, "passwordauthentication"),
+        "kbdinteractiveauthentication": _first(
+            settings, "kbdinteractiveauthentication"
+        ),
+        "forwardagent": _first(settings, "forwardagent"),
+        "clearallforwardings": _first(settings, "clearallforwardings"),
+        "port": _first(settings, "port"),
+    }
+    check(
+        policy["stricthostkeychecking"] == "true"
+        and policy["identitiesonly"] == "yes"
+        and policy["passwordauthentication"] == "no"
+        and policy["kbdinteractiveauthentication"] == "no"
+        and policy["forwardagent"] == "no"
+        and policy["clearallforwardings"] == "yes"
+        and policy["port"] == "2222",
+        "client SSH policy is pinned, key-only, forwarding-free, and on port 2222",
+    )
+
+    known_hosts_values = _first(settings, "userknownhostsfile").split()
+    known_hosts = (
+        Path(known_hosts_values[0]).expanduser() if known_hosts_values else None
+    )
+    check(
+        known_hosts is not None
+        and known_hosts.is_file()
+        and bool(
+            _run(["ssh-keygen", "-E", "sha256", "-lf", str(known_hosts)]).stdout
+        ),
+        "KOReader Dropbear host key is pinned locally",
+    )
+
+    identity = _run(
+        [
+            "ssh",
+            "-o",
+            "BatchMode=yes",
+            host,
+            'printf "uid=%s\\n" "$(id -u)"',
+        ]
+    ).stdout
+    check("uid=0\n" in identity, "SSH reaches KOReader's root-owned Dropbear")
+
+    health = _run(
+        [
+            "ssh",
+            "-o",
+            "BatchMode=yes",
+            host,
+            "cat /mnt/onboard/.adds/koreader/.koreader-appliance.json; "
+            "ps; df -k /mnt/onboard; uptime",
+        ]
+    ).stdout
+    check(
+        '"launch_mode": "nickelmenu"' in health
+        and '"device": "kobo-clara-bw"' in health
+        and "dropbear" in health.lower(),
+        "deployment marker and KOReader Dropbear are healthy",
+    )
+
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    remote = f"/tmp/koreader-appliance-{os.getpid()}-{stamp}"
+    with tempfile.TemporaryDirectory(
+        prefix="koreader-appliance-validation-"
+    ) as temporary:
+        local = Path(temporary)
+        fixture = local / "fixture.txt"
+        fixture.write_text(f"koreader-appliance-{stamp}\n", encoding="utf-8")
+        expected_hash = hashlib.sha256(fixture.read_bytes()).hexdigest()
+        try:
+            _run(["scp", "-q", "-O", str(fixture), f"{host}:{remote}"])
+            downloaded = local / "downloaded.txt"
+            _run(["scp", "-q", "-O", f"{host}:{remote}", str(downloaded)])
+            check(
+                hashlib.sha256(downloaded.read_bytes()).hexdigest()
+                == expected_hash,
+                "Dropbear SCP round trip preserves bytes",
+            )
+        finally:
+            subprocess.run(
+                ["ssh", "-o", "BatchMode=yes", host, f"rm -f {remote}"],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+    result: dict[str, object] = {
+        "schema": 1,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "host": host,
+        "build_installer_sha256": manifest.get("installer_sha256"),
+        "passes": passes,
+        "failures": failures,
+        "health": health.splitlines(),
+        "physical_gates": [
+            "display and flicker",
+            "front-light intensity and warmth",
+            "100 cover sleep and wake cycles",
+            "100 Bluetooth remote reconnect cycles",
+            "page-turn latency",
+            "seven-day battery drain",
+        ],
+    }
+    (evidence / "result.json").write_text(
+        json.dumps(result, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    (evidence / "ssh-policy.json").write_text(
+        json.dumps(policy, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return {"evidence": str(evidence), "passes": len(passes), "failures": failures}
+
+
 def validate_live(
     host: str, build_manifest: Path, evidence_root: Path
 ) -> dict[str, object]:
@@ -59,6 +188,8 @@ def validate_live(
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     evidence = evidence_root.expanduser().resolve() / stamp
     evidence.mkdir(parents=True)
+    if manifest.get("launch_mode") == "nickelmenu":
+        return _validate_nickelmenu(host, manifest, evidence)
     passes: list[str] = []
     failures: list[str] = []
 

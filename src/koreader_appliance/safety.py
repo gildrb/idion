@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import errno
 import os
 from pathlib import Path
 
@@ -46,6 +47,15 @@ def fsync_file(path: Path) -> None:
 def fsync_directory(path: Path) -> None:
     descriptor = os.open(path, os.O_RDONLY)
     try:
-        os.fsync(descriptor)
+        try:
+            os.fsync(descriptor)
+        except OSError as error:
+            # FAT drivers on some supported hosts sync file contents but do not
+            # implement directory fsync. Preserve every other I/O failure.
+            unsupported = {errno.EINVAL, errno.ENOTSUP}
+            if hasattr(errno, "EOPNOTSUPP"):
+                unsupported.add(errno.EOPNOTSUPP)
+            if error.errno not in unsupported:
+                raise
     finally:
         os.close(descriptor)

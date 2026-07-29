@@ -38,7 +38,7 @@ class ManifestTests(unittest.TestCase):
                 encoding="utf-8",
             )
             manifest = ApplianceManifest.from_toml(manifest_path)
-            self.assertEqual(manifest.koreader.path, root / "koreader.zip")
+            self.assertEqual(manifest.koreader.path, (root / "koreader.zip").resolve())
             self.assertEqual(
                 manifest.library.folders,
                 ("Programming", "Linux", "Math", "Papers", "Manuals"),
@@ -96,6 +96,7 @@ class ManifestTests(unittest.TestCase):
         archive = root / "reader.zip"
         with zipfile.ZipFile(archive, "w") as output:
             output.writestr("koreader/reader.lua", "return true\n")
+            output.writestr("koreader/koreader.sh", "#!/bin/sh\n")
         package = root / "root.tgz"
         package.write_bytes(b"root-package")
         settings = root / "settings.lua"
@@ -125,6 +126,29 @@ class ManifestTests(unittest.TestCase):
             self.assertTrue(all(step["status"] == "ok" for step in apply(mount, manifest, device)))
         finally:
             temporary.cleanup()
+
+    def test_parses_nickelmenu_launch_and_ssh_key(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            manifest_path = root / "appliance.toml"
+            manifest_path.write_text(
+                'device = "kobo-clara-bw"\n'
+                '[koreader]\narchive = "reader.zip"\nsha256 = "'
+                + "a" * 64
+                + '"\n[root_package]\npath = "root.tgz"\nsha256 = "'
+                + "b" * 64
+                + '"\n[backup]\nmanifest = "backup.json"\n'
+                '[launch]\nmode = "nickelmenu"\n'
+                '[ssh]\nauthorized_key = "reader.pub"\n',
+                encoding="utf-8",
+            )
+
+            manifest = ApplianceManifest.from_toml(manifest_path)
+
+            self.assertEqual(manifest.launch.mode, "nickelmenu")
+            self.assertEqual(
+                manifest.ssh.authorized_key, (root / "reader.pub").resolve()
+            )
 
     def test_setup_creates_declared_backup_before_apply(self) -> None:
         temporary, manifest, device = self._fixture()

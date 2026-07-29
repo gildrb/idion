@@ -11,6 +11,14 @@ sha256 = "1111111111111111111111111111111111111111111111111111111111111111"
 [backup]
 manifest = "/path/to/ReaderBackups/clara-before/backup-manifest.json"
 
+[launch]
+# "nickelmenu" is the conservative default for reliable sleep/wake behavior.
+# Use "autostart" only after the device passes the physical acceptance gates.
+mode = "nickelmenu"
+
+[ssh]
+authorized_key = "~/.ssh/id_reader.pub"
+
 [settings]
 profile = "base.lua"
 

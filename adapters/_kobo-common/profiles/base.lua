@@ -35,9 +35,10 @@ return {
     ["ignore_open_sleepcover"] = false,
     ["ignore_power_sleepcover"] = false,
 
-    -- KOReader's optional recovery SSH service remains off and key-only.
+    -- KOReader's maintained Dropbear service is available for diagnostics
+    -- whenever KOReader and Wi-Fi are running. It remains key-only.
     ["SSH_allow_no_password"] = false,
-    ["SSH_autostart"] = false,
+    ["SSH_autostart"] = true,
     ["SSH_key_only_auth"] = true,
     ["SSH_port"] = "2222",
 

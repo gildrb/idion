@@ -48,6 +48,39 @@ class RootPackageTests(unittest.TestCase):
             self.assertEqual(len(result["installer_sha256"]), 64)
             self.assertTrue(Path(result["host_public_key"]).is_file())
 
+    def test_builds_minimal_nickelmenu_package_without_root_ssh(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            package_tree = root / "nickelmenu"
+            library = package_tree / "usr/local/Kobo/imageformats/libnm.so"
+            library.parent.mkdir(parents=True)
+            library.write_bytes(b"nickelmenu")
+            documentation = package_tree / "mnt/onboard/.adds/nm/doc"
+            documentation.parent.mkdir(parents=True)
+            documentation.write_text("NickelMenu\n")
+            package = root / "NickelMenu.tgz"
+            with tarfile.open(package, "w:gz") as archive:
+                archive.add(package_tree, arcname=".")
+            output = root / "output"
+            device = Registry(REPOSITORY / "adapters").get("kobo-clara-bw")
+
+            result = build_kobo_root(
+                device=device,
+                adapter_rootfs=REPOSITORY / "adapters" / "_kobo-common" / "rootfs",
+                output_directory=output,
+                launch_mode="nickelmenu",
+                nickelmenu_package=package,
+            )
+
+            with tarfile.open(result["installer"], "r:gz") as archive:
+                names = set(archive.getnames())
+                self.assertIn("./usr/local/Kobo/imageformats/libnm.so", names)
+                self.assertIn("./etc/hosts", names)
+                self.assertNotIn("./etc/init.d/on-animator.sh", names)
+                self.assertNotIn("./etc/init.d/ssh", names)
+
+            self.assertEqual(result["host_public_key"], "not-applicable")
+
 
 if __name__ == "__main__":
     unittest.main()

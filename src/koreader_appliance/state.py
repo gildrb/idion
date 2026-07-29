@@ -6,7 +6,8 @@ from .backup import verify_backup_manifest
 from .manifest import ApplianceManifest
 from .model import Device
 from .safety import SafetyError, require_directory, under
-from .stage import stage_koreader
+from .stage import NICKELMENU_CONFIG, deployment_is_current, stage_koreader
+from .ssh import read_authorized_key
 
 
 def require_installable(device: Device, allow_unverified: bool = False) -> None:
@@ -35,7 +36,11 @@ def plan(
 ) -> list[dict[str, str]]:
     mount = require_directory(mount, "reader mount")
     koreader_root = under(mount, device.storage.koreader_root)
-    settings = koreader_root / "settings.reader.lua.pending"
+    settings = koreader_root / (
+        "settings.reader.lua.pending"
+        if manifest.launch.mode == "autostart"
+        else "settings.reader.lua"
+    )
     books_root = under(mount, device.storage.books_root)
     trigger = (
         under(mount, device.storage.installer_trigger)
@@ -47,7 +52,14 @@ def plan(
         _step(
             "koreader-root",
             koreader_root,
-            "ok" if (koreader_root / "reader.lua").is_file() else "pending",
+            "ok"
+            if deployment_is_current(
+                koreader_root,
+                device,
+                manifest.koreader.sha256,
+                manifest.launch.mode,
+            )
+            else "pending",
         ),
     ]
     if trigger is not None:
@@ -70,6 +82,24 @@ def plan(
                 "ok" if settings.is_file() else "pending",
             )
         )
+    if manifest.ssh is not None:
+        authorized_keys = koreader_root / "settings/SSH/authorized_keys"
+        expected_key = (
+            read_authorized_key(manifest.ssh.authorized_key)
+            if manifest.ssh.authorized_key.is_file()
+            else None
+        )
+        steps.append(
+            _step(
+                "ssh-authorized-key",
+                authorized_keys,
+                "ok"
+                if expected_key is not None
+                and authorized_keys.is_file()
+                and authorized_keys.read_text(encoding="utf-8") == expected_key
+                else "pending",
+            )
+        )
     steps.extend(
         _step(
             "library-folder",
@@ -78,13 +108,25 @@ def plan(
         )
         for folder in manifest.library.folders
     )
-    if device.platform == "kobo":
+    if device.platform == "kobo" and manifest.launch.mode == "autostart":
         ssh_marker = under(mount, ".kobo/ssh-enabled")
         steps.append(
             _step(
                 "ssh-enabled-marker",
                 ssh_marker,
                 "ok" if ssh_marker.is_file() else "pending",
+            )
+        )
+    if device.platform == "kobo" and manifest.launch.mode == "nickelmenu":
+        launcher = under(mount, ".adds/nm/koreader")
+        steps.append(
+            _step(
+                "nickelmenu-launcher",
+                launcher,
+                "ok"
+                if launcher.is_file()
+                and launcher.read_text(encoding="utf-8") == NICKELMENU_CONFIG
+                else "pending",
             )
         )
     return steps
@@ -127,5 +169,7 @@ def apply(
             device,
             manifest.settings.profile if manifest.settings is not None else None,
             manifest.library.folders,
+            manifest.launch.mode,
+            manifest.ssh.authorized_key if manifest.ssh is not None else None,
         )
     return plan(mount, manifest, device)

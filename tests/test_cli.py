@@ -55,6 +55,8 @@ class CLITests(unittest.TestCase):
                     "backup_manifest": mount / "backup.json",
                     "settings": None,
                     "allow_unverified": True,
+                    "launch_mode": "autostart",
+                    "authorized_key": None,
                 },
             )()
             with (

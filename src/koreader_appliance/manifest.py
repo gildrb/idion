@@ -35,6 +35,16 @@ class BackupConfig:
 
 
 @dataclass(frozen=True)
+class LaunchConfig:
+    mode: str
+
+
+@dataclass(frozen=True)
+class SSHConfig:
+    authorized_key: Path
+
+
+@dataclass(frozen=True)
 class SettingsConfig:
     profile: Path
 
@@ -50,6 +60,8 @@ class ApplianceManifest:
     koreader: KoreaderConfig
     root_package: RootPackageConfig
     backup: BackupConfig
+    launch: LaunchConfig
+    ssh: SSHConfig | None
     settings: SettingsConfig | None
     library: LibraryConfig
     source: Path
@@ -68,16 +80,30 @@ class ApplianceManifest:
         try:
             cls._table(
                 data,
-                {"device", "koreader", "root_package", "backup", "settings", "library"},
+                {
+                    "device",
+                    "koreader",
+                    "root_package",
+                    "backup",
+                    "launch",
+                    "ssh",
+                    "settings",
+                    "library",
+                },
             )
             koreader_data = data["koreader"]
             root_data = data["root_package"]
             backup_data = data["backup"]
+            launch_data = data.get("launch", {})
+            ssh_data = data.get("ssh")
             settings_data = data.get("settings")
             library_data = data.get("library", {})
             cls._table(koreader_data, {"archive", "sha256"}, "koreader")
             cls._table(root_data, {"path", "sha256"}, "root_package")
             cls._table(backup_data, {"manifest"}, "backup")
+            cls._table(launch_data, {"mode"}, "launch")
+            if ssh_data is not None:
+                cls._table(ssh_data, {"authorized_key"}, "ssh")
             if settings_data is not None:
                 cls._table(settings_data, {"profile"}, "settings")
             cls._table(library_data, {"folders"}, "library")
@@ -109,6 +135,22 @@ class ApplianceManifest:
                     manifest=cls._path(
                         source, backup_data["manifest"], "backup.manifest"
                     )
+                ),
+                launch=LaunchConfig(
+                    mode=cls._string(
+                        launch_data.get("mode", "autostart"), "launch.mode"
+                    )
+                ),
+                ssh=(
+                    SSHConfig(
+                        authorized_key=cls._path(
+                            source,
+                            ssh_data["authorized_key"],
+                            "ssh.authorized_key",
+                        )
+                    )
+                    if ssh_data is not None
+                    else None
                 ),
                 settings=settings,
                 library=library,
@@ -177,6 +219,10 @@ class ApplianceManifest:
             raise SafetyError("appliance manifest device is empty")
         if not self.library.folders:
             raise SafetyError("library.folders must not be empty")
+        if self.launch.mode not in {"autostart", "nickelmenu"}:
+            raise SafetyError(
+                "launch.mode must be either 'autostart' or 'nickelmenu'"
+            )
 
     @staticmethod
     def hash_file(path: Path) -> str:

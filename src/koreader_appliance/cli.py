@@ -98,6 +98,8 @@ def build_root_command(arguments: argparse.Namespace) -> None:
             sftp_server_binary=arguments.sftp_server,
             rsync_binary=arguments.rsync,
             output_directory=arguments.output,
+            launch_mode=arguments.launch_mode,
+            nickelmenu_package=arguments.nickelmenu_package,
         )
     )
 
@@ -120,6 +122,8 @@ def stage_command(arguments: argparse.Namespace) -> None:
             arguments.root_package,
             device,
             settings,
+            launch_mode=arguments.launch_mode,
+            authorized_key=arguments.authorized_key,
         )
     )
 
@@ -282,10 +286,16 @@ def parser() -> argparse.ArgumentParser:
         "build-kobo-root", help="build a keyed Kobo root installer"
     )
     root.add_argument("--device", default="kobo-clara-bw")
-    root.add_argument("--authorized-key", type=Path, required=True)
-    root.add_argument("--scp", type=Path, required=True)
-    root.add_argument("--sftp-server", type=Path, required=True)
-    root.add_argument("--rsync", type=Path, required=True)
+    root.add_argument(
+        "--launch-mode",
+        choices=("autostart", "nickelmenu"),
+        default="nickelmenu",
+    )
+    root.add_argument("--nickelmenu-package", type=Path)
+    root.add_argument("--authorized-key", type=Path)
+    root.add_argument("--scp", type=Path)
+    root.add_argument("--sftp-server", type=Path)
+    root.add_argument("--rsync", type=Path)
     root.add_argument("--output", type=Path, required=True)
     root.set_defaults(handler=build_root_command)
 
@@ -298,6 +308,12 @@ def parser() -> argparse.ArgumentParser:
     stage.add_argument("--root-package", type=Path, required=True)
     stage.add_argument("--backup-manifest", type=Path, required=True)
     stage.add_argument("--settings", type=Path)
+    stage.add_argument(
+        "--launch-mode",
+        choices=("autostart", "nickelmenu"),
+        default="autostart",
+    )
+    stage.add_argument("--authorized-key", type=Path)
     stage.add_argument("--allow-unverified", action="store_true")
     stage.set_defaults(handler=stage_command)
 

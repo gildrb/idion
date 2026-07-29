@@ -111,6 +111,7 @@ class StressTests(unittest.TestCase):
                 archive = root / "reader.zip"
                 with zipfile.ZipFile(archive, "w") as output:
                     output.writestr("koreader/reader.lua", "return true\n")
+                    output.writestr("koreader/koreader.sh", "#!/bin/sh\n")
                 package = root / "root.tgz"
                 package.write_bytes(b"root-package-" + device_id.encode())
                 manifest_path = root / "appliance.toml"
