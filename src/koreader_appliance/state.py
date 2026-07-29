@@ -6,7 +6,14 @@ from .backup import verify_backup_manifest
 from .manifest import ApplianceManifest
 from .model import Device
 from .safety import SafetyError, require_directory, under
-from .stage import NICKELMENU_CONFIG, deployment_is_current, stage_koreader
+from .stage import (
+    EXCLUDE_SYNC_FOLDERS,
+    NICKELMENU_CONFIG,
+    NICKELMENU_LAUNCHER,
+    deployment_is_current,
+    library_is_current,
+    stage_koreader,
+)
 from .ssh import read_authorized_key
 
 
@@ -108,6 +115,16 @@ def plan(
         )
         for folder in manifest.library.folders
     )
+    if manifest.library.sha256 is not None:
+        steps.append(
+            _step(
+                "library-restore",
+                books_root,
+                "ok"
+                if library_is_current(mount, manifest.library.sha256)
+                else "pending",
+            )
+        )
     if device.platform == "kobo" and manifest.launch.mode == "autostart":
         ssh_marker = under(mount, ".kobo/ssh-enabled")
         steps.append(
@@ -119,6 +136,10 @@ def plan(
         )
     if device.platform == "kobo" and manifest.launch.mode == "nickelmenu":
         launcher = under(mount, ".adds/nm/koreader")
+        launcher_script = under(
+            mount, ".adds/koreader-appliance/koreader-launch.sh"
+        )
+        config = under(mount, ".kobo/Kobo/Kobo eReader.conf")
         steps.append(
             _step(
                 "nickelmenu-launcher",
@@ -126,6 +147,12 @@ def plan(
                 "ok"
                 if launcher.is_file()
                 and launcher.read_text(encoding="utf-8") == NICKELMENU_CONFIG
+                and launcher_script.is_file()
+                and launcher_script.read_text(encoding="utf-8")
+                == NICKELMENU_LAUNCHER
+                and config.is_file()
+                and f"ExcludeSyncFolders={EXCLUDE_SYNC_FOLDERS}\n"
+                in config.read_text(encoding="utf-8")
                 else "pending",
             )
         )
@@ -171,5 +198,7 @@ def apply(
             manifest.library.folders,
             manifest.launch.mode,
             manifest.ssh.authorized_key if manifest.ssh is not None else None,
+            manifest.library.restore,
+            manifest.library.sha256,
         )
     return plan(mount, manifest, device)

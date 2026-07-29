@@ -52,6 +52,8 @@ class SettingsConfig:
 @dataclass(frozen=True)
 class LibraryConfig:
     folders: tuple[str, ...]
+    restore: Path | None
+    sha256: str | None
 
 
 @dataclass(frozen=True)
@@ -106,7 +108,7 @@ class ApplianceManifest:
                 cls._table(ssh_data, {"authorized_key"}, "ssh")
             if settings_data is not None:
                 cls._table(settings_data, {"profile"}, "settings")
-            cls._table(library_data, {"folders"}, "library")
+            cls._table(library_data, {"folders", "restore", "sha256"}, "library")
             koreader = KoreaderConfig(
                 path=cls._path(source, koreader_data["archive"], "koreader.archive"),
                 sha256=cls._hash(koreader_data["sha256"], "koreader.sha256"),
@@ -125,7 +127,13 @@ class ApplianceManifest:
                 else None
             )
             library = LibraryConfig(
-                folders=cls._folders(library_data.get("folders", DEFAULT_LIBRARY_FOLDERS))
+                folders=cls._folders(library_data.get("folders", DEFAULT_LIBRARY_FOLDERS)),
+                restore=cls._path(source, library_data["restore"], "library.restore")
+                if "restore" in library_data
+                else None,
+                sha256=cls._hash(library_data["sha256"], "library.sha256")
+                if "sha256" in library_data
+                else None,
             )
             manifest = cls(
                 device=cls._string(data["device"], "device"),
@@ -219,6 +227,8 @@ class ApplianceManifest:
             raise SafetyError("appliance manifest device is empty")
         if not self.library.folders:
             raise SafetyError("library.folders must not be empty")
+        if (self.library.restore is None) != (self.library.sha256 is None):
+            raise SafetyError("library.restore and library.sha256 must be set together")
         if self.launch.mode not in {"autostart", "nickelmenu"}:
             raise SafetyError(
                 "launch.mode must be either 'autostart' or 'nickelmenu'"

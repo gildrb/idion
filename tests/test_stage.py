@@ -5,7 +5,7 @@ import zipfile
 
 from koreader_appliance.registry import Registry
 from koreader_appliance.safety import SafetyError
-from koreader_appliance.stage import stage_koreader
+from koreader_appliance.stage import library_tree_hash, stage_koreader
 
 
 REPOSITORY = Path(__file__).resolve().parents[1]
@@ -66,6 +66,11 @@ class StageTests(unittest.TestCase):
             profile.write_text("return { first = true }\n")
             key = root / "reader.pub"
             key.write_text("ssh-ed25519 AAAATEST reader\n")
+            library = root / "library"
+            (library / "Author").mkdir(parents=True)
+            (library / "Author/book.epub").write_bytes(b"book")
+            (library / "Author/._book.epub").write_bytes(b"metadata")
+            library_hash, _ = library_tree_hash(library)
             device = Registry(REPOSITORY / "adapters").detect(mount)
 
             first = stage_koreader(
@@ -76,6 +81,8 @@ class StageTests(unittest.TestCase):
                 profile,
                 launch_mode="nickelmenu",
                 authorized_key=key,
+                library_source=library,
+                library_sha256=library_hash,
             )
             settings = mount / ".adds/koreader/settings.reader.lua"
             settings.write_text("return { user = true }\n")
@@ -87,6 +94,8 @@ class StageTests(unittest.TestCase):
                 profile,
                 launch_mode="nickelmenu",
                 authorized_key=key,
+                library_source=library,
+                library_sha256=library_hash,
             )
 
             self.assertEqual(first["redeployed"], "true")
@@ -95,14 +104,21 @@ class StageTests(unittest.TestCase):
             self.assertFalse((mount / ".kobo/ssh-enabled").exists())
             self.assertTrue((mount / ".adds/nm/koreader").is_file())
             self.assertIn(
-                "exec /bin/sh /mnt/onboard/.adds/nm/koreader-launch.sh",
+                "exec /bin/sh /mnt/onboard/.adds/koreader-appliance/koreader-launch.sh",
                 (mount / ".adds/nm/koreader").read_text(encoding="utf-8"),
             )
             self.assertIn(
                 "/mnt/onboard/.adds/koreader.previous",
-                (mount / ".adds/nm/koreader-launch.sh").read_text(
+                (mount / ".adds/koreader-appliance/koreader-launch.sh").read_text(
                     encoding="utf-8"
                 ),
+            )
+            self.assertFalse((mount / ".adds/nm/koreader-launch.sh").exists())
+            self.assertTrue((mount / "Books/Author/book.epub").is_file())
+            self.assertFalse((mount / "Books/Author/._book.epub").exists())
+            self.assertIn(
+                "ExcludeSyncFolders=",
+                (mount / ".kobo/Kobo/Kobo eReader.conf").read_text(),
             )
             self.assertEqual(
                 (mount / ".adds/koreader/settings/SSH/authorized_keys").read_text(),

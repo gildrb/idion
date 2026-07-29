@@ -47,7 +47,7 @@ working vendor UI. Staging writes `.adds/koreader.staging`, syncs it, preserves
 the declared mutable entries, and only then switches directories. The last
 tree remains as `.adds/koreader.previous`.
 
-The root package contains NickelMenu and the host policy only. Root SSH,
+The root package contains NickelMenu and a stock-compatible hosts file. Root SSH,
 watchdogs, and KOReader boot hooks are excluded. Key-only diagnostic SSH is
 owned by KOReader and disappears when KOReader exits.
 

@@ -43,6 +43,30 @@ class ManifestTests(unittest.TestCase):
                 manifest.library.folders,
                 ("Programming", "Linux", "Math", "Papers", "Manuals"),
             )
+            self.assertIsNone(manifest.library.restore)
+            self.assertIsNone(manifest.library.sha256)
+
+    def test_parses_pinned_library_restore(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            path = root / "appliance.toml"
+            path.write_text(
+                'device = "kobo-clara-bw"\n'
+                '[koreader]\narchive = "reader.zip"\nsha256 = "'
+                + "a" * 64
+                + '"\n[root_package]\npath = "root.tgz"\nsha256 = "'
+                + "b" * 64
+                + '"\n[backup]\nmanifest = "backup.json"\n'
+                + '[library]\nrestore = "library"\nsha256 = "'
+                + "c" * 64
+                + '"\n',
+                encoding="utf-8",
+            )
+
+            manifest = ApplianceManifest.from_toml(path)
+
+            self.assertEqual(manifest.library.restore, (root / "library").resolve())
+            self.assertEqual(manifest.library.sha256, "c" * 64)
 
     def test_rejects_missing_required_pin(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

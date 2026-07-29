@@ -17,10 +17,9 @@ After a normal boot, launch KOReader with one tap from NickelMenu. This removes
 the custom boot takeover from the daily reliability path.
 
 The generated `KoboRoot.tgz` contains only NickelMenu's pinned upstream binary
-and the repository's `/etc/hosts` policy. The policy blocks Kobo and Rakuten
-store, account, sync, firmware-update, and analytics hosts while leaving
-KOReader networking, dictionaries, Wikipedia, SSH, and user-selected services
-unrestricted. It does not install the autostart manager or root SSH watchdog.
+and a stock-compatible `/etc/hosts`. Kobo account, store, library sync, and
+firmware updates remain available. It does not install the autostart manager
+or root SSH watchdog.
 
 KOReader is replaced transactionally: a complete new tree is copied and
 synced before activation, mutable reading state is carried forward, and the

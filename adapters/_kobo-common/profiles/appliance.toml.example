@@ -24,3 +24,6 @@ profile = "base.lua"
 
 [library]
 folders = ["Programming", "Linux", "Math", "Papers", "Manuals"]
+# Optional verified import from an off-device library directory.
+# restore = "/path/to/ReaderBackups/library"
+# sha256 = "2222222222222222222222222222222222222222222222222222222222222222"
