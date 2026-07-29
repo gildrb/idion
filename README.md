@@ -9,58 +9,6 @@ be reproduced.
 Start with [Setup](#setup): find your model, prepare its manifest, and run the
 one-shot command after mounting the reader.
 
-### Stable profile
-
-The recommended `launch.mode = "nickelmenu"` profile keeps Kobo's firmware,
-boot chain, hardware initialization, sleep, and recovery interface intact.
-After a normal boot, launch KOReader with one tap from NickelMenu. This removes
-the custom boot takeover from the daily reliability path.
-
-The generated `KoboRoot.tgz` contains only NickelMenu's pinned upstream binary
-and a stock-compatible `/etc/hosts`. The stable profile intentionally enables
-Kobo's sideloaded mode, so account/store sync and firmware update traffic stay
-out of the daily path. Nickel remains available as a recovery shell; KOReader
-state is backed up through the local Syncthing service below.
-
-KOReader is replaced transactionally: a complete new tree is copied and
-synced before activation, reading state is restored from the verified backup
-and then updated from any newer on-device state, and the previous installation
-remains at `.adds/koreader.previous`. Cache and old policy patches are not
-restored. A power loss or bad KOReader build therefore falls back to Nickel
-instead of compromising the Kobo boot path. The Clara BW adapter adds a
-Bluetooth-only plugin pinned to a documented upstream commit; suspend calls
-have reply deadlines and reconnect discovery never sleeps on the UI thread.
-
-KOReader's maintained Dropbear service provides key-only SSH on port 2222 when
-KOReader and Wi-Fi are running. No password login, rootfs SSH daemon, or
-watchdog is installed.
-
-KOSyncthing+ can be supplied as pinned plugin and Syncthing archives in the
-manifest. The stable policy runs it only for an explicit Quick Sync and uses
-LAN-only discovery with the low-resource profile. Configure the server folder
-as `receiveonly` with staggered versioning; the Kobo folder must be `sendonly`,
-so a server fault can never overwrite the reader.
-
-### Self-hosted Syncthing
-
-The server needs an ordinary Syncthing service, not a custom sync server. The
-verified deployment uses the native user service and stores its receive-only
-archive at `~/Backups/Kobo/syncthing`:
-
-```sh
-systemctl --user enable --now syncthing.service
-syncthing cli config folders kobo-appliance dump-json
-```
-
-Pair the server with KOSyncthing+, share folder ID `kobo-appliance`, accept it
-at `/mnt/onboard`, and set the Kobo side to send-only. The server side is
-receive-only, so it cannot overwrite the reader. Quick Sync copies books,
-Kobo data, KOReader settings, statistics, bookmarks, and document state while
-ignoring only disposable caches, host metadata, and Syncthing's live index.
-Keep global discovery, relays, NAT traversal, crash reporting, and automatic
-upgrades off; leave LAN discovery on. The server uses one-year staggered file
-versioning.
-
 ### What this does and does not do
 
 Commands run locally, create no accounts, upload nothing, and make no network
