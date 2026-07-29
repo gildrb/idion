@@ -58,6 +58,7 @@ class BluetoothOverlayTests(unittest.TestCase):
         )
         self.assertNotIn('"statistics",', disabled_plugins)
         self.assertNotIn('"kobo_remote",', disabled_plugins)
+        self.assertNotIn('"readingstreak",', disabled_plugins)
         self.assertIn("dropbear_koreader.pid", cleanup)
 
 
