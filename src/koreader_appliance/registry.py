@@ -20,7 +20,9 @@ def default_device_directory() -> Path:
     if candidate.is_dir():
         return candidate.resolve()
     raise SafetyError(
-        "could not locate device adapters; set KOREADER_APPLIANCE_DEVICES"
+        "could not locate device adapters; looked beside the installed package "
+        "and in the current directory. The documented install is an editable "
+        "install from a repository clone; otherwise set KOREADER_APPLIANCE_DEVICES"
     )
 
 

@@ -21,7 +21,17 @@ REPOSITORY = Path(__file__).resolve().parents[1]
 
 
 class ManifestTests(unittest.TestCase):
-    def test_parses_relative_paths_and_defaults_library(self) -> None:
+    def test_example_leaves_optional_sections_inactive(self) -> None:
+        manifest = ApplianceManifest.from_toml(
+            REPOSITORY / "adapters/_kobo-common/profiles/appliance.toml.example"
+        )
+        self.assertIsNone(manifest.ssh)
+        self.assertIsNone(manifest.syncthing)
+        self.assertIsNone(manifest.reading_streak)
+        self.assertEqual(manifest.settings.profile, Path("base.lua"))
+        self.assertEqual(manifest.library.folders, ())
+
+    def test_parses_relative_paths_without_default_library_folders(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             manifest_path = root / "appliance.toml"
@@ -41,7 +51,7 @@ class ManifestTests(unittest.TestCase):
             self.assertEqual(manifest.koreader.path, (root / "koreader.zip").resolve())
             self.assertEqual(
                 manifest.library.folders,
-                ("Programming", "Linux", "Math", "Papers", "Manuals"),
+                (),
             )
             self.assertIsNone(manifest.library.restore)
             self.assertIsNone(manifest.library.sha256)
@@ -190,7 +200,7 @@ class ManifestTests(unittest.TestCase):
             + '"\n[root_package]\npath = "root.tgz"\nsha256 = "'
             + sha256(package.read_bytes()).hexdigest()
             + '"\n[backup]\nmanifest = "backup/backup-manifest.json"\n'
-            '[settings]\nprofile = "settings.lua"\n'
+            '[settings]\nprofile = "./settings.lua"\n'
             '[library]\nfolders = ["Books", "Manuals"]\n',
             encoding="utf-8",
         )
@@ -204,7 +214,18 @@ class ManifestTests(unittest.TestCase):
             self.assertTrue(before)
             self.assertTrue(all(step["status"] == "pending" for step in before))
             self.assertTrue(all(step["status"] == "ok" for step in apply(mount, manifest, device)))
+            (mount / ".kobo/KoboRoot.tgz").unlink()
+            after_consumption = plan(mount, manifest, device)
+            self.assertEqual(
+                next(
+                    step["status"]
+                    for step in after_consumption
+                    if step["action"] == "installer-trigger"
+                ),
+                "ok",
+            )
             self.assertTrue(all(step["status"] == "ok" for step in apply(mount, manifest, device)))
+            self.assertFalse((mount / ".kobo/KoboRoot.tgz").exists())
             self.assertEqual(
                 (mount / ".adds/koreader/settings/statistics.sqlite3").read_bytes(),
                 b"statistics",

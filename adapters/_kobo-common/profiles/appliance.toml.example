@@ -16,24 +16,28 @@ manifest = "/path/to/ReaderBackups/clara-before/backup-manifest.json"
 # Use "autostart" only after the device passes the physical acceptance gates.
 mode = "nickelmenu"
 
-[ssh]
-authorized_key = "~/.ssh/id_reader.pub"
+# Optional: add an operator key to enable KOReader SSH.
+# [ssh]
+# authorized_key = "~/.ssh/id_reader.pub"
 
+# Optional: the bare profile name resolves from the adapter profiles directory.
 [settings]
 profile = "base.lua"
 
-[syncthing]
-plugin_archive = "/path/to/kosyncthing_plus.koplugin.zip"
-plugin_sha256 = "2222222222222222222222222222222222222222222222222222222222222222"
-binary_archive = "/path/to/syncthing-linux-arm.tar.gz"
-binary_sha256 = "3333333333333333333333333333333333333333333333333333333333333333"
+# Optional: uncomment these sections to install the pinned plugins and binaries.
+# [syncthing]
+# plugin_archive = "/path/to/kosyncthing_plus.koplugin.zip"
+# plugin_sha256 = "2222222222222222222222222222222222222222222222222222222222222222"
+# binary_archive = "/path/to/syncthing-linux-arm.tar.gz"
+# binary_sha256 = "3333333333333333333333333333333333333333333333333333333333333333"
 
-[reading_streak]
-plugin_archive = "/path/to/readingstreak.koplugin.zip"
-plugin_sha256 = "4444444444444444444444444444444444444444444444444444444444444444"
+# [reading_streak]
+# plugin_archive = "/path/to/readingstreak.koplugin.zip"
+# plugin_sha256 = "4444444444444444444444444444444444444444444444444444444444444444"
 
 [library]
-folders = ["Programming", "Linux", "Math", "Papers", "Manuals"]
+# Optional; omit this section to leave the existing library unchanged.
+# folders = ["Programming", "Linux", "Math", "Papers", "Manuals"]
 # Optional verified import from an off-device library directory.
 # restore = "/path/to/ReaderBackups/library"
 # sha256 = "5555555555555555555555555555555555555555555555555555555555555555"

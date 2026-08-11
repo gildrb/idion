@@ -1,14 +1,16 @@
 # Recovery
 
-The stable profile always boots to Nickel before KOReader is launched. A
-KOReader failure cannot take ownership of the boot path.
+The NickelMenu profile boots to Nickel before KOReader is launched. Direct
+`stage` still defaults to the legacy `autostart` mode, so select NickelMenu
+explicitly when using direct staging. A KOReader failure cannot take ownership
+of the boot path in NickelMenu mode.
 
 ## Reachable over SSH
 
 1. Copy KOReader's crash log and `.koreader-appliance.json` off-device.
 2. Exit KOReader or reboot into Nickel.
-3. Re-run the pinned setup or replace `.adds/koreader` with
-   `.adds/koreader.previous` while mounted.
+3. Re-run the pinned setup or, if a previous activation exists, replace
+   `.adds/koreader` with `.adds/koreader.previous` while mounted.
 4. Launch KOReader manually and repeat the failed operation.
 
 ## Not reachable over SSH

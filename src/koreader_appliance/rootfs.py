@@ -48,7 +48,7 @@ def _extract_nickelmenu(package: Path, root: Path) -> None:
                 raise SafetyError(
                     f"NickelMenu package contains an unsafe member: {member.name}"
                 )
-        archive.extractall(root, members=members, filter="fully_trusted")
+        archive.extractall(root, members=members, filter="data")
     if not (root / "usr/local/Kobo/imageformats/libnm.so").is_file():
         raise SafetyError("NickelMenu package does not contain libnm.so")
 

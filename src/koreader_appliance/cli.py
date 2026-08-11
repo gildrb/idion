@@ -7,6 +7,7 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 import subprocess
 import sys
+import tomllib
 
 from .backup import create_backup, verify_backup_manifest
 from .profiles import apply_manga_profile
@@ -17,6 +18,7 @@ from .safety import SafetyError
 from .ssh import render_host_config
 from .stage import stage_koreader
 from .manifest import ApplianceManifest
+from .resources import adapter_resource, settings_profile
 from .state import (
     apply as apply_manifest,
     plan as plan_manifest,
@@ -80,15 +82,12 @@ def backup_command(arguments: argparse.Namespace) -> None:
 def build_root_command(arguments: argparse.Namespace) -> None:
     registry = _registry(arguments)
     device = registry.get(arguments.device)
-    repository = Path(__file__).resolve().parents[2]
     if device.platform != "kobo":
         raise SafetyError(
             f"Kobo root builder cannot build {device.id}: Kindle and other "
             "non-Kobo readers need a vendor adapter and jailbreak (KUAL/MRPI)"
         )
-    adapter_rootfs = repository / "adapters" / device.id / "rootfs"
-    if not adapter_rootfs.is_dir():
-        adapter_rootfs = repository / "adapters" / "_kobo-common" / "rootfs"
+    adapter_rootfs = adapter_resource(device, "rootfs")
     _json(
         build_kobo_root(
             device=device,
@@ -108,13 +107,11 @@ def stage_command(arguments: argparse.Namespace) -> None:
     device = _device(arguments)
     require_installable(device, arguments.allow_unverified)
     verify_backup_manifest(arguments.backup_manifest, device, arguments.mount)
-    settings = arguments.settings
-    if settings is None:
-        repository = Path(__file__).resolve().parents[2]
-        candidate = repository / "adapters" / device.id / "profiles" / "base.lua"
-        if not candidate.is_file() and device.platform == "kobo":
-            candidate = repository / "adapters" / "_kobo-common" / "profiles" / "base.lua"
-        settings = candidate if candidate.is_file() else None
+    settings = (
+        settings_profile(device, arguments.settings)
+        if arguments.settings is not None
+        else settings_profile(device, Path("base.lua"))
+    )
     _json(
         stage_koreader(
             arguments.mount,
@@ -193,6 +190,27 @@ def setup_command(arguments: argparse.Namespace) -> None:
         Path("~/.config/koreader-appliance").expanduser()
         / f"{device.id}.toml"
     )
+    artifact_flags = any(
+        value is not None
+        for value in (
+            arguments.koreader,
+            arguments.nickelmenu_package,
+            arguments.authorized_key,
+            arguments.scp,
+            arguments.sftp_server,
+            arguments.rsync,
+        )
+    )
+    if artifact_flags:
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        data = _load_manifest_data(manifest_path) if manifest_path.is_file() else {}
+        _refresh_manifest_data(data, arguments, device, manifest_path)
+        _write_manifest(manifest_path, data)
+    elif not manifest_path.is_file():
+        raise SafetyError(
+            f"manifest is not readable: {manifest_path}; supply --koreader "
+            "and the root-package inputs to generate it"
+        )
     manifest = ApplianceManifest.from_toml(manifest_path)
     if manifest.device != device.id:
         raise SafetyError(
@@ -229,8 +247,139 @@ def setup_command(arguments: argparse.Namespace) -> None:
             "state": apply_manifest(
                 mount, manifest, device, arguments.allow_unverified
             ),
+            "manifest": str(manifest_path),
         }
     )
+
+
+def _load_manifest_data(path: Path) -> dict[str, object]:
+    try:
+        with path.expanduser().resolve().open("rb") as handle:
+            data = tomllib.load(handle)
+    except (OSError, tomllib.TOMLDecodeError) as error:
+        raise SafetyError(f"could not read appliance manifest {path}: {error}") from error
+    if not isinstance(data, dict):
+        raise SafetyError(f"appliance manifest must be a TOML table: {path}")
+    return data
+
+
+def _sha256(path: Path) -> str:
+    return ApplianceManifest.hash_file(path.expanduser().resolve())
+
+
+def _refresh_manifest_data(
+    data: dict[str, object],
+    arguments: argparse.Namespace,
+    device,
+    manifest_path: Path,
+) -> None:
+    data["device"] = device.id
+    koreader = data.setdefault("koreader", {})
+    root_package = data.setdefault("root_package", {})
+    backup = data.setdefault(
+        "backup",
+        {
+            "manifest": str(
+                Path("~/.local/state/koreader-appliance").expanduser()
+                / device.id
+                / "backup"
+                / "backup-manifest.json"
+            )
+        },
+    )
+    if not all(isinstance(section, dict) for section in (koreader, root_package, backup)):
+        raise SafetyError(f"invalid appliance manifest sections: {manifest_path}")
+
+    if arguments.koreader is not None:
+        archive = arguments.koreader.expanduser().resolve()
+        koreader["archive"] = str(archive)
+        koreader["sha256"] = _sha256(archive)
+
+    launch_mode = arguments.launch_mode
+    if launch_mode is None:
+        launch_data = data.get("launch", {})
+        launch_mode = launch_data.get("mode", "nickelmenu") if isinstance(launch_data, dict) else "nickelmenu"
+    data["launch"] = {"mode": launch_mode}
+
+    build_requested = any(
+        value is not None
+        for value in (
+            arguments.nickelmenu_package,
+            arguments.authorized_key,
+            arguments.scp,
+            arguments.sftp_server,
+            arguments.rsync,
+        )
+    )
+    if build_requested:
+        output = (
+            Path("~/.local/state/koreader-appliance").expanduser()
+            / device.id
+        )
+        output.mkdir(parents=True, exist_ok=True)
+        build = build_kobo_root(
+            device=device,
+            adapter_rootfs=adapter_resource(device, "rootfs"),
+            authorized_key=arguments.authorized_key,
+            scp_binary=arguments.scp,
+            sftp_server_binary=arguments.sftp_server,
+            rsync_binary=arguments.rsync,
+            output_directory=output,
+            launch_mode=launch_mode,
+            nickelmenu_package=arguments.nickelmenu_package,
+        )
+        root_path = Path(build["installer"]).resolve()
+        root_package["path"] = str(root_path)
+        root_package["sha256"] = _sha256(root_path)
+    elif "path" not in root_package or "sha256" not in root_package:
+        raise SafetyError(
+            "setup needs a root package; supply --nickelmenu-package for "
+            "nickelmenu mode or all autostart root-build inputs"
+        )
+
+    settings = data.setdefault("settings", {"profile": "base.lua"})
+    if not isinstance(settings, dict) or "profile" not in settings:
+        raise SafetyError(f"invalid settings section: {manifest_path}")
+    if arguments.authorized_key is not None:
+        data["ssh"] = {"authorized_key": str(arguments.authorized_key.expanduser().resolve())}
+
+
+def _toml_value(value: object) -> str:
+    if isinstance(value, str):
+        return json.dumps(value)
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return str(value)
+    if isinstance(value, list):
+        return json.dumps(value)
+    raise SafetyError(f"cannot write unsupported TOML value: {value!r}")
+
+
+def _write_manifest(path: Path, data: dict[str, object]) -> None:
+    sections = (
+        "koreader",
+        "root_package",
+        "backup",
+        "launch",
+        "ssh",
+        "settings",
+        "syncthing",
+        "reading_streak",
+        "library",
+    )
+    lines = [f"device = {_toml_value(data['device'])}", ""]
+    for section in sections:
+        values = data.get(section)
+        if values is None:
+            continue
+        if not isinstance(values, dict):
+            raise SafetyError(f"{section} must be a TOML table")
+        lines.append(f"[{section}]")
+        for key, value in values.items():
+            lines.append(f"{key} = {_toml_value(value)}")
+        lines.append("")
+    path.write_text("\n".join(lines), encoding="utf-8")
 
 
 def _find_mount(
@@ -378,6 +527,13 @@ def parser() -> argparse.ArgumentParser:
         type=Path,
         default=None,
     )
+    setup.add_argument("--koreader", type=Path)
+    setup.add_argument("--nickelmenu-package", type=Path)
+    setup.add_argument("--launch-mode", choices=("autostart", "nickelmenu"))
+    setup.add_argument("--authorized-key", type=Path)
+    setup.add_argument("--scp", type=Path)
+    setup.add_argument("--sftp-server", type=Path)
+    setup.add_argument("--rsync", type=Path)
     setup.add_argument("--yes", action="store_true")
     setup.add_argument("--allow-unverified", action="store_true")
     setup.set_defaults(handler=setup_command)

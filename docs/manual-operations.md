@@ -21,6 +21,9 @@ reboot, or toggle Wi-Fi.
 
 ### Plan and apply
 
+Create a manifest with `setup` first, or copy and edit the authoritative
+example at `adapters/_kobo-common/profiles/appliance.toml.example`.
+
 ```sh
 koreader-appliance plan /Volumes/KOBOeReader \
   --manifest ~/.config/koreader-appliance/kobo-libra-2.toml
@@ -28,16 +31,24 @@ koreader-appliance apply /Volumes/KOBOeReader \
   --manifest ~/.config/koreader-appliance/kobo-libra-2.toml --yes
 ```
 
-`plan` is read-only. `apply` detects the adapter, verifies the backup and both
-SHA-256 pins, then converges the declared state. Re-running it preserves
+`plan` is read-only. `apply` selects the adapter named by the manifest and
+checks that the mounted reader matches it; it does not auto-detect a different
+adapter. It then verifies the backup and declared SHA-256 pins before
+converging state. Re-running it preserves
 current KOReader settings and does not redeploy an unchanged KOReader tree.
 
 ### Live validation
 
-Run validation after KOReader launches and Wi-Fi is manually enabled. The
+For autostart builds, first render and load the pinned SSH client profile using
+the generated host public key (NickelMenu validation does not require root SSH).
+Then run validation after KOReader launches and Wi-Fi is manually enabled. The
 stable profile uses KOReader SSH on port 2222 rather than rootfs OpenSSH:
 
 ```sh
+koreader-appliance ssh-config \
+  --host-public-key ~/.local/state/koreader-appliance/kobo-clara-bw/device-host-ed25519.pub \
+  --identity-file ~/.ssh/id_reader \
+  > ~/.ssh/config.d/koreader-appliance.conf
 koreader-appliance validate-live \
   --host clara \
   --build-manifest ~/ReaderBuilds/clara/build-manifest.json \

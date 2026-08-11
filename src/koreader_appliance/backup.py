@@ -101,7 +101,12 @@ def verify_backup_manifest(
     manifest_path = require_outside(manifest_path, mount, "backup manifest")
     if not manifest_path.is_file():
         raise SafetyError(f"backup manifest is not readable: {manifest_path}")
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise SafetyError(
+            f"backup manifest is not valid JSON: {manifest_path}: {error}"
+        ) from error
     if manifest.get("schema") != 1 or manifest.get("device", {}).get("id") != device.id:
         raise SafetyError(
             f"backup manifest does not match {device.id}: {manifest_path}"
