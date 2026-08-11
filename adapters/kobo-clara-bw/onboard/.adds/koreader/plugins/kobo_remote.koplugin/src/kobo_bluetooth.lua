@@ -3,8 +3,6 @@
 --- Provides on/off toggle functionality, device scanning using D-Bus commands
 --- and prevents standby mode when Bluetooth is active.
 ---
---- This is based on the investigation done in docs/dev/investigations/bluetooth/
-
 local BluetoothKeyBindings = require("src/bluetooth_keybindings")
 local ConfirmBox = require("ui/widget/confirmbox")
 local DbusAdapter = require("src/lib/bluetooth/dbus_adapter")
