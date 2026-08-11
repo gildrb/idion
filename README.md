@@ -19,9 +19,6 @@ One command from a mounted reader: verified backup, pinned artifacts, installed,
 - No telemetry, no accounts, no uploads, no crash reports.
 - No plugin enabled. `kobo_remote` ships present and disabled.
 - No service enabled in the default NickelMenu path. SSH does not autostart.
-- No library folders invented in `Books/`.
-- No writes to `KoboReader.sqlite`. Editing the vendor database is a stability risk, so vendor analytics rows stay where they are.
-- No Kindle. Detection and backup only; installation is refused.
 
 ### Install
 
@@ -59,7 +56,7 @@ Autostart into KOReader is a separate launch mode requiring `--launch-mode autos
 | --- | --- | --- |
 | Kobo Clara BW (P365) | Verified | Detect, back up, build, stage |
 | Clara HD, Clara 2E, Clara Colour, Libra H2O, Libra 2, Libra Colour, Nia, Sage, Elipsa 2E, Forma | Unverified | Detect, back up, build, stage with `--allow-unverified` |
-| Kindle | Blocked | Detect and back up only |
+| Kindle | Blocked | Detect and back up only; installation refused |
 
 Unverified adapters share the Kobo rootfs and have no hardware test evidence. The privacy defaults are covered by tests and fake-mount runs, not by a hardware surveillance audit.
 

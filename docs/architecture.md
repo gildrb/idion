@@ -51,6 +51,9 @@ The root package contains NickelMenu and a stock-compatible hosts file. Root SSH
 watchdogs, and KOReader boot hooks are excluded. Key-only diagnostic SSH is
 owned by KOReader and disappears when KOReader exits.
 
+The appliance does not write `KoboReader.sqlite` because editing the vendor
+database is a stability risk. Vendor analytics rows already on the device stay.
+
 ## Secret flow
 
 1. The operator supplies one public login key outside the repository.
