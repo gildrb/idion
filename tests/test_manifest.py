@@ -8,13 +8,13 @@ import tempfile
 import unittest
 import zipfile
 
-from koreader_appliance.backup import create_backup
-from koreader_appliance.cli import main
-from koreader_appliance.model import Device
-from koreader_appliance.manifest import ApplianceManifest
-from koreader_appliance.registry import Registry
-from koreader_appliance.safety import SafetyError
-from koreader_appliance.state import apply, plan, require_installable
+from idion.backup import create_backup
+from idion.cli import main
+from idion.model import Device
+from idion.manifest import ApplianceManifest
+from idion.registry import Registry
+from idion.safety import SafetyError
+from idion.state import apply, plan, require_installable
 
 
 REPOSITORY = Path(__file__).resolve().parents[1]
@@ -165,7 +165,7 @@ class ManifestTests(unittest.TestCase):
             )
             manifest = ApplianceManifest.from_toml(manifest_path)
             with self.assertRaises(SafetyError):
-                from koreader_appliance.state import _verify_pin
+                from idion.state import _verify_pin
 
                 _verify_pin(manifest.koreader.path, manifest.koreader.sha256, "archive")
 
@@ -238,6 +238,41 @@ class ManifestTests(unittest.TestCase):
                 (mount / ".adds/koreader/settings/statistics.sqlite3").read_bytes(),
                 b"statistics",
             )
+        finally:
+            temporary.cleanup()
+
+    def test_apply_migrates_legacy_deployment_marker(self) -> None:
+        temporary, manifest, device = self._fixture()
+        try:
+            mount = Path(temporary.name) / "reader"
+            manifest = replace(
+                manifest, launch=replace(manifest.launch, mode="nickelmenu")
+            )
+            apply(mount, manifest, device)
+            destination = mount / ".adds/koreader"
+            current = destination / ".idion.json"
+            legacy = destination / ".koreader-appliance.json"
+            current.rename(legacy)
+            launcher = mount / ".adds/idion/koreader-launch.sh"
+            legacy_launcher = mount / ".adds/koreader-appliance/koreader-launch.sh"
+            legacy_launcher.parent.mkdir(parents=True, exist_ok=True)
+            launcher.rename(legacy_launcher)
+
+            self.assertEqual(
+                next(
+                    step["status"]
+                    for step in plan(mount, manifest, device)
+                    if step["action"] == "nickelmenu-launcher"
+                ),
+                "pending",
+            )
+            self.assertTrue(
+                all(step["status"] == "ok" for step in apply(mount, manifest, device))
+            )
+            self.assertTrue(current.is_file())
+            self.assertFalse(legacy.exists())
+            self.assertTrue(launcher.is_file())
+            self.assertFalse(legacy_launcher.exists())
         finally:
             temporary.cleanup()
 

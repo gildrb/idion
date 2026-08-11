@@ -1,16 +1,19 @@
 import io
+import hashlib
 from pathlib import Path
 import tarfile
 import tempfile
 import unittest
 import zipfile
 
-from koreader_appliance.registry import Registry
-from koreader_appliance.safety import SafetyError
-from koreader_appliance.stage import (
+from idion.registry import Registry
+from idion.safety import SafetyError
+from idion.stage import (
+    LEGACY_ROOT_PACKAGE_APPLIED_MARKER,
     ROOT_PACKAGE_APPLIED_MARKER,
     SYNCTHING_IGNORE,
     library_tree_hash,
+    root_package_is_applied,
     stage_koreader,
 )
 
@@ -66,6 +69,76 @@ class StageTests(unittest.TestCase):
             trigger.unlink()
             stage_koreader(mount, archive, package, device, launch_mode="nickelmenu")
             self.assertEqual(trigger.read_bytes(), b"changed-package")
+
+    def test_legacy_root_package_marker_converges_and_migrates(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            mount = root / "reader"
+            (mount / ".kobo").mkdir(parents=True)
+            (mount / ".kobo/version").write_text("P365\n")
+            archive = root / "koreader.zip"
+            with zipfile.ZipFile(archive, "w") as output:
+                output.writestr("koreader/reader.lua", "return true\n")
+                output.writestr("koreader/koreader.sh", "#!/bin/sh\n")
+            package = root / "KoboRoot.tgz"
+            package.write_bytes(b"root-package")
+            device = Registry(REPOSITORY / "adapters").detect(mount)
+
+            first = stage_koreader(
+                mount, archive, package, device, launch_mode="nickelmenu"
+            )
+            trigger = mount / ".kobo/KoboRoot.tgz"
+            trigger.unlink()
+            marker = mount / ROOT_PACKAGE_APPLIED_MARKER
+            legacy = mount / LEGACY_ROOT_PACKAGE_APPLIED_MARKER
+            legacy.parent.mkdir(parents=True, exist_ok=True)
+            marker.rename(legacy)
+
+            second = stage_koreader(
+                mount, archive, package, device, launch_mode="nickelmenu"
+            )
+
+            self.assertEqual(first["redeployed"], "true")
+            self.assertEqual(second["redeployed"], "false")
+            self.assertFalse(trigger.exists())
+            self.assertTrue(marker.is_file())
+            self.assertFalse(legacy.exists())
+            self.assertFalse(legacy.parent.exists())
+            expected = hashlib.sha256(package.read_bytes()).hexdigest()
+            self.assertTrue(root_package_is_applied(mount, expected))
+
+    def test_mismatched_legacy_root_package_marker_forces_staging(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            mount = root / "reader"
+            (mount / ".kobo").mkdir(parents=True)
+            (mount / ".kobo/version").write_text("P365\n")
+            archive = root / "koreader.zip"
+            with zipfile.ZipFile(archive, "w") as output:
+                output.writestr("koreader/reader.lua", "return true\n")
+                output.writestr("koreader/koreader.sh", "#!/bin/sh\n")
+            package = root / "KoboRoot.tgz"
+            package.write_bytes(b"root-package")
+            device = Registry(REPOSITORY / "adapters").detect(mount)
+
+            stage_koreader(mount, archive, package, device, launch_mode="nickelmenu")
+            trigger = mount / ".kobo/KoboRoot.tgz"
+            trigger.unlink()
+            marker = mount / ROOT_PACKAGE_APPLIED_MARKER
+            marker.unlink()
+            legacy = mount / LEGACY_ROOT_PACKAGE_APPLIED_MARKER
+            legacy.parent.mkdir(parents=True, exist_ok=True)
+            legacy.write_text("0" * 64, encoding="ascii")
+
+            self.assertFalse(root_package_is_applied(mount, "1" * 64))
+            result = stage_koreader(
+                mount, archive, package, device, launch_mode="nickelmenu"
+            )
+
+            self.assertEqual(result["redeployed"], "false")
+            self.assertEqual(trigger.read_bytes(), b"root-package")
+            self.assertTrue(marker.is_file())
+            self.assertFalse(legacy.exists())
 
     def test_installs_pinned_reading_streak_plugin(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -283,18 +356,18 @@ class StageTests(unittest.TestCase):
             self.assertFalse((mount / ".kobo/ssh-enabled").exists())
             self.assertTrue((mount / ".adds/nm/koreader").is_file())
             self.assertIn(
-                "exec /bin/sh /mnt/onboard/.adds/koreader-appliance/koreader-launch.sh",
+                "exec /bin/sh /mnt/onboard/.adds/idion/koreader-launch.sh",
                 (mount / ".adds/nm/koreader").read_text(encoding="utf-8"),
             )
             self.assertIn(
                 "/mnt/onboard/.adds/koreader.previous",
-                (mount / ".adds/koreader-appliance/koreader-launch.sh").read_text(
+                (mount / ".adds/idion/koreader-launch.sh").read_text(
                     encoding="utf-8"
                 ),
             )
             self.assertIn(
                 "/sbin/reboot",
-                (mount / ".adds/koreader-appliance/koreader-launch.sh").read_text(
+                (mount / ".adds/idion/koreader-launch.sh").read_text(
                     encoding="utf-8"
                 ),
             )

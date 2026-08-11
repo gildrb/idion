@@ -110,7 +110,7 @@ def _validate_nickelmenu(
             "-o",
             "BatchMode=yes",
             host,
-            "cat /mnt/onboard/.adds/koreader/.koreader-appliance.json; "
+            "cat /mnt/onboard/.adds/koreader/.idion.json; "
             "ps; df -k /mnt/onboard; uptime",
         ]
     ).stdout
@@ -122,13 +122,13 @@ def _validate_nickelmenu(
     )
 
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
-    remote = f"/tmp/koreader-appliance-{os.getpid()}-{stamp}"
+    remote = f"/tmp/idion-{os.getpid()}-{stamp}"
     with tempfile.TemporaryDirectory(
-        prefix="koreader-appliance-validation-"
+        prefix="idion-validation-"
     ) as temporary:
         local = Path(temporary)
         fixture = local / "fixture.txt"
-        fixture.write_text(f"koreader-appliance-{stamp}\n", encoding="utf-8")
+        fixture.write_text(f"idion-{stamp}\n", encoding="utf-8")
         expected_hash = hashlib.sha256(fixture.read_bytes()).hexdigest()
         try:
             _run(["scp", "-q", "-O", str(fixture), f"{host}:{remote}"])
@@ -290,13 +290,13 @@ def validate_live(
         "remote rsync binary matches the build",
     )
 
-    remote = f"/tmp/koreader-appliance-{os.getpid()}-{stamp}"
+    remote = f"/tmp/idion-{os.getpid()}-{stamp}"
     with tempfile.TemporaryDirectory(
-        prefix="koreader-appliance-validation-"
+        prefix="idion-validation-"
     ) as temporary:
         local = Path(temporary)
         fixture = local / "fixture.txt"
-        fixture.write_text(f"koreader-appliance-{stamp}\n")
+        fixture.write_text(f"idion-{stamp}\n")
         expected_hash = hashlib.sha256(fixture.read_bytes()).hexdigest()
         _run(["ssh", "-o", "BatchMode=yes", host, f"mkdir -p {remote}/rsync"])
         try:

@@ -116,7 +116,7 @@ def build_kobo_root(
     output_directory = output_directory.expanduser().resolve()
     output_directory.mkdir(parents=True, exist_ok=True)
 
-    with tempfile.TemporaryDirectory(prefix="koreader-appliance-root-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="idion-root-") as temporary:
         work = Path(temporary)
         root = work / "rootfs"
         public_key = None

@@ -7,7 +7,7 @@ One command from a mounted reader: verified backup, pinned artifacts, installed,
 ### Does
 
 - Backs up the reader off-device and verifies the backup before writing anything.
-- Pins every artifact by SHA-256 in `~/.config/koreader-appliance/<device>.toml`, so the same install is reproducible.
+- Pins every artifact by SHA-256 in `~/.config/idion/<device>.toml`, so the same install is reproducible.
 - Stages KOReader transactionally, keeping the previous tree for rollback.
 - Blackholes Nickel's analytics, store/sync, and silent-upgrade endpoints, and starts Nickel in airplane and sideloaded mode.
 - Leaves the default boot chain stock: Kobo, NickelMenu, KOReader.
@@ -19,6 +19,7 @@ One command from a mounted reader: verified backup, pinned artifacts, installed,
 - No telemetry, no accounts, no uploads, no crash reports.
 - No plugin enabled. `kobo_remote` ships present and disabled.
 - No service enabled in the default NickelMenu path. SSH does not autostart.
+- No writes to `KoboReader.sqlite`. Editing the vendor database is a stability risk, so vendor analytics rows already on the device stay.
 
 ### Install
 
@@ -37,7 +38,7 @@ Download the [KOReader Kobo archive](https://github.com/koreader/koreader/releas
 Mount the reader, then:
 
 ```sh
-koreader-appliance setup kobo-clara-bw /Volumes/KOBOeReader \
+idion setup kobo-clara-bw /Volumes/KOBOeReader \
   --koreader ~/Downloads/koreader-kobo.zip \
   --nickelmenu-package ~/Downloads/NickelMenu-KoboRoot.tgz \
   --yes

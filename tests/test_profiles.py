@@ -2,8 +2,8 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from koreader_appliance.profiles import apply_manga_profile
-from koreader_appliance.safety import SafetyError
+from idion.profiles import apply_manga_profile
+from idion.safety import SafetyError
 
 
 class MangaProfileTests(unittest.TestCase):

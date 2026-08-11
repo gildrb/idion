@@ -1,6 +1,6 @@
 # Kobo Clara BW adapter
 
-Start with `koreader-appliance backup`; do not build or stage an installer
+Start with `idion backup`; do not build or stage an installer
 until the backup finishes and its hashes match.
 
 ## Observed behavior

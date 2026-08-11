@@ -8,13 +8,13 @@ import unittest
 from unittest.mock import patch
 import zipfile
 
-from koreader_appliance.cli import _find_mount
-from koreader_appliance import cli
-from koreader_appliance.backup import verify_backup_manifest
-from koreader_appliance.registry import Registry
-from koreader_appliance.safety import SafetyError
-from koreader_appliance.validate import validate_live
-from koreader_appliance.manifest import ApplianceManifest
+from idion.cli import _find_mount
+from idion import cli
+from idion.backup import verify_backup_manifest
+from idion.registry import Registry
+from idion.safety import SafetyError
+from idion.validate import validate_live
+from idion.manifest import ApplianceManifest
 
 
 REPOSITORY = Path(__file__).resolve().parents[1]
@@ -27,7 +27,7 @@ class CLITests(unittest.TestCase):
             with self.assertRaises(SystemExit) as result:
                 cli.main(["--version"])
         self.assertEqual(result.exception.code, 0)
-        self.assertRegex(output.getvalue(), r"koreader-appliance 1\.0\.0\n")
+        self.assertRegex(output.getvalue(), r"idion 1\.0\.0\n")
 
     def test_unknown_shorthand_device_has_repo_error_format(self) -> None:
         error = io.StringIO()
@@ -187,14 +187,14 @@ class CLITests(unittest.TestCase):
                 self.assertEqual(
                     ApplianceManifest.from_toml(
                         home
-                        / ".config/koreader-appliance/kobo-clara-bw.toml"
+                        / ".config/idion/kobo-clara-bw.toml"
                     ).launch.mode,
                     "nickelmenu",
                 )
 
             manifest_path = (
                 home
-                / ".config/koreader-appliance/kobo-clara-bw.toml"
+                / ".config/idion/kobo-clara-bw.toml"
             )
             manifest = ApplianceManifest.from_toml(manifest_path)
             self.assertEqual(manifest.device, "kobo-clara-bw")
@@ -205,6 +205,33 @@ class CLITests(unittest.TestCase):
                     for folder in ("Programming", "Linux", "Math", "Papers", "Manuals")
                 )
             )
+
+            legacy_manifest_path = (
+                home / ".config/koreader-appliance/kobo-clara-bw.toml"
+            )
+            legacy_manifest_path.parent.mkdir(parents=True)
+            manifest_path.rename(legacy_manifest_path)
+            with legacy_manifest_path.open("a", encoding="utf-8") as handle:
+                handle.write('[library]\nfolders = ["Preserved"]\n')
+            with patch.dict("os.environ", {"HOME": str(home)}, clear=False):
+                with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+                    self.assertEqual(
+                        cli.main(
+                            [
+                                "setup",
+                                "kobo-clara-bw",
+                                str(mount),
+                                "--koreader",
+                                str(koreader),
+                                "--yes",
+                            ]
+                        ),
+                        0,
+                    )
+            refreshed = ApplianceManifest.from_toml(manifest_path)
+            self.assertEqual(refreshed.library.folders, ("Preserved",))
+            self.assertTrue(legacy_manifest_path.is_file())
+            self.assertTrue(manifest_path.is_file())
 
 
 if __name__ == "__main__":
