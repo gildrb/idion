@@ -5,6 +5,7 @@ from pathlib import Path
 from .backup import verify_backup_manifest
 from .manifest import ApplianceManifest
 from .model import Device
+from .nickel import READER_CONFIG, privacy_is_current
 from .resources import settings_profile
 from .safety import SafetyError, require_directory, under
 from .stage import (
@@ -177,6 +178,14 @@ def plan(
                 "ssh-enabled-marker",
                 ssh_marker,
                 "ok" if ssh_marker.is_file() else "pending",
+            )
+        )
+    if device.platform == "kobo":
+        steps.append(
+            _step(
+                "nickel-privacy",
+                under(mount, READER_CONFIG),
+                "ok" if privacy_is_current(mount, device) else "pending",
             )
         )
     if device.platform == "kobo" and manifest.launch.mode == "nickelmenu":

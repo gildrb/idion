@@ -1,2 +1,14 @@
 127.0.0.1 localhost localhost.localdomain @HOSTNAME@
 ::1 localhost localhost.localdomain
+
+# Disable Nickel's Google Analytics event stream.
+127.0.0.1 google-analytics.com www.google-analytics.com ssl.google-analytics.com analytics.google.com
+
+# Disable Kobo analytics, store, and sync requests.
+127.0.0.1 storeapi.kobo.com
+
+# Disable silent OTA firmware upgrades.
+127.0.0.1 api.kobobooks.com api.ereaderupgrade.com api.ereaderupgrades.com
+
+# Keep www.kobo.com reachable: Nickel uses /buildinfo.xml for captive-portal
+# detection, and blackholing it makes Wi-Fi behave badly.

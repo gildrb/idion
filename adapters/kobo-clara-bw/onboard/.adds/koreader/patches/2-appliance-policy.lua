@@ -1,6 +1,6 @@
 local disabled = G_reader_settings:readSetting("plugins_disabled") or {}
 
-for _, name in ipairs({
+local known_plugins = {
     "archiveviewer",
     "autodim",
     "autostandby",
@@ -32,32 +32,36 @@ for _, name in ipairs({
     "texteditor",
     "timesync",
     "wallabag",
-}) do
-    disabled[name] = true
-end
-
-for _, name in ipairs({
     "kobo_remote",
     "kosyncthing_plus",
     "readingstreak",
     "statistics",
-}) do
-    disabled[name] = nil
+}
+
+local function disable_known_plugins()
+    for _, name in ipairs(known_plugins) do
+        disabled[name] = true
+    end
 end
+
+local enumerated = pcall(function()
+    local lfs = require("lfs")
+    for entry in lfs.dir(DataStorage:getDataDir() .. "/plugins") do
+        if entry ~= "." and entry ~= ".." and entry:sub(-9) == ".koplugin" then
+            disabled[entry:sub(1, -10)] = true
+        end
+    end
+end)
+if not enumerated then
+    disable_known_plugins()
+end
+
 G_reader_settings:saveSetting("plugins_disabled", disabled)
 G_reader_settings:saveSetting("SSH_allow_no_password", false)
-G_reader_settings:saveSetting("SSH_autostart", true)
+G_reader_settings:saveSetting("SSH_autostart", false)
 G_reader_settings:saveSetting("SSH_force_kill_clients", true)
 G_reader_settings:saveSetting("SSH_key_only_auth", true)
 G_reader_settings:saveSetting("SSH_port", "2222")
-
-G_reader_settings:saveSetting("syncthing_autostart_mode", "off")
-G_reader_settings:saveSetting("syncthing_auto_start_charging", false)
-G_reader_settings:saveSetting("syncthing_network_access", "lan")
-G_reader_settings:saveSetting("syncthing_notifications_enabled", true)
-G_reader_settings:saveSetting("syncthing_periodic_sync_enabled", false)
-G_reader_settings:saveSetting("syncthing_periodic_sync_interval_min", 60)
-G_reader_settings:saveSetting("syncthing_resource_profile", "low")
 
 local remote = G_reader_settings:readSetting("kobo_remote") or {}
 remote.disable_auto_connect_after_connect = true
