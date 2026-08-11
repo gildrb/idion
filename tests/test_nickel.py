@@ -51,8 +51,15 @@ class NickelPrivacyTests(unittest.TestCase):
             self.assertIn("SideloadedMode=true\n", first[0])
             self.assertIn("GAQueue = @Invalid()\n", first[1])
             self.assertTrue(privacy_is_current(mount, device))
+            analytics.write_text(
+                "[General]\nClientID=preserve\nGAQueue=fresh\n", encoding="utf-8"
+            )
+            self.assertTrue(privacy_is_current(mount, device))
             apply_privacy(mount, device)
-            self.assertEqual(first, (config.read_text(), analytics.read_text()))
+            self.assertEqual(
+                analytics.read_text(),
+                "[General]\nClientID=preserve\nGAQueue=@Invalid()\n",
+            )
 
     def test_absent_files_are_created(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -62,10 +69,7 @@ class NickelPrivacyTests(unittest.TestCase):
                 (mount / READER_CONFIG).read_text(),
                 "[ApplicationPreferences]\nAIRPLANE_MODE=true\nSideloadedMode=true\n",
             )
-            self.assertEqual(
-                (mount / ANALYTICS_CONFIG).read_text(),
-                "[Analytics]\nGAQueue=@Invalid()\n",
-            )
+            self.assertFalse((mount / ANALYTICS_CONFIG).exists())
 
     def test_malformed_file_raises_safety_error(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

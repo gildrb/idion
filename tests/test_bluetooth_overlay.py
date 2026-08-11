@@ -41,7 +41,12 @@ class BluetoothOverlayTests(unittest.TestCase):
         policy = (patches / "2-appliance-policy.lua").read_text(encoding="utf-8")
         cleanup = (patches / "9-appliance-stop-ssh.lua").read_text(encoding="utf-8")
 
-        self.assertIn('for entry in lfs.dir(DataStorage:getDataDir() .. "/plugins") do', policy)
+        self.assertIn('local data_storage = require("datastorage")', policy)
+        self.assertIn('lfs.currentdir() .. "/plugins"', policy)
+        self.assertIn('data_storage:getDataDir() .. "/plugins"', policy)
+        self.assertIn('readSetting("extra_plugin_paths")', policy)
+        self.assertIn("for entry in lfs.dir(path) do", policy)
+        self.assertNotIn("DataStorage:", policy)
         self.assertIn('disabled[entry:sub(1, -10)] = true', policy)
         self.assertIn("disable_known_plugins()", policy)
         self.assertIn('G_reader_settings:saveSetting("SSH_key_only_auth", true)', policy)

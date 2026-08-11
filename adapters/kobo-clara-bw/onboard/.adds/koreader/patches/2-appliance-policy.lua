@@ -44,15 +44,34 @@ local function disable_known_plugins()
     end
 end
 
-local enumerated = pcall(function()
+local enumerated = false
+local enumeration_ok = pcall(function()
     local lfs = require("lfs")
-    for entry in lfs.dir(DataStorage:getDataDir() .. "/plugins") do
-        if entry ~= "." and entry ~= ".." and entry:sub(-9) == ".koplugin" then
-            disabled[entry:sub(1, -10)] = true
+    local data_storage = require("datastorage")
+    local paths = {
+        lfs.currentdir() .. "/plugins",
+        data_storage:getDataDir() .. "/plugins",
+    }
+    local extra_paths = G_reader_settings:readSetting("extra_plugin_paths")
+    if type(extra_paths) == "table" then
+        for _, path in ipairs(extra_paths) do
+            table.insert(paths, path)
         end
+    elseif type(extra_paths) == "string" then
+        table.insert(paths, extra_paths)
+    end
+    for _, path in ipairs(paths) do
+        local path_ok = pcall(function()
+            for entry in lfs.dir(path) do
+                if entry ~= "." and entry ~= ".." and entry:sub(-9) == ".koplugin" then
+                    disabled[entry:sub(1, -10)] = true
+                end
+            end
+        end)
+        enumerated = enumerated or path_ok
     end
 end)
-if not enumerated then
+if not enumeration_ok or not enumerated then
     disable_known_plugins()
 end
 

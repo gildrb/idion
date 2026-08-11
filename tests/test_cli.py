@@ -147,6 +147,10 @@ class CLITests(unittest.TestCase):
             with patch.dict("os.environ", {"HOME": str(home)}, clear=False):
                 with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
                     self.assertEqual(cli.main(arguments), 0)
+                (mount / ".kobo/Kobo/Analytics.conf").write_text(
+                    "[General]\nClientID=preserve\nGAQueue=fresh\n",
+                    encoding="utf-8",
+                )
                 second_output = io.StringIO()
                 with redirect_stdout(second_output), redirect_stderr(io.StringIO()):
                     self.assertEqual(cli.main(arguments), 0)
