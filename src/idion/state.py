@@ -10,7 +10,6 @@ from .resources import settings_profile
 from .safety import SafetyError, require_directory, under
 from .stage import (
     EXCLUDE_SYNC_FOLDERS,
-    LEGACY_LAUNCHER_SCRIPT,
     NICKELMENU_CONFIG,
     NICKELMENU_LAUNCHER,
     SYNCTHING_IGNORE,
@@ -195,8 +194,6 @@ def plan(
         launcher_script = under(
             mount, ".adds/idion/koreader-launch.sh"
         )
-        if not launcher_script.is_file():
-            launcher_script = under(mount, LEGACY_LAUNCHER_SCRIPT)
         config = under(mount, ".kobo/Kobo/Kobo eReader.conf")
         steps.append(
             _step(
@@ -294,6 +291,5 @@ def apply(
         manifest.syncthing.binary.sha256 if manifest.syncthing else None,
         manifest.reading_streak.sha256 if manifest.reading_streak else None,
         state_backup_sha256,
-        manifest.library.sha256,
     )
     return plan(mount, manifest, device)

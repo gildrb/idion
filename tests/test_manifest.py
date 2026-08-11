@@ -258,8 +258,13 @@ class ManifestTests(unittest.TestCase):
             legacy_launcher.parent.mkdir(parents=True, exist_ok=True)
             launcher.rename(legacy_launcher)
 
-            self.assertTrue(
-                all(step["status"] == "ok" for step in plan(mount, manifest, device))
+            self.assertEqual(
+                next(
+                    step["status"]
+                    for step in plan(mount, manifest, device)
+                    if step["action"] == "nickelmenu-launcher"
+                ),
+                "pending",
             )
             self.assertTrue(
                 all(step["status"] == "ok" for step in apply(mount, manifest, device))

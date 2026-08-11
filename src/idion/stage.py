@@ -477,19 +477,6 @@ def _migrate_library_marker(mount: Path) -> None:
             pass
 
 
-def _migrate_launcher_script(mount: Path) -> None:
-    marker = under(mount, ".adds/idion/koreader-launch.sh")
-    legacy = under(mount, LEGACY_LAUNCHER_SCRIPT)
-    if marker.is_file():
-        _remove_legacy_marker(legacy)
-    elif legacy.is_file():
-        try:
-            _atomic_text(marker, legacy.read_text(encoding="utf-8"))
-            _remove_legacy_marker(legacy)
-        except (OSError, UnicodeError):
-            pass
-
-
 def migrate_legacy_markers(
     mount: Path,
     device: Device,
@@ -500,7 +487,6 @@ def migrate_legacy_markers(
     syncthing_binary_sha256: str | None = None,
     reading_streak_sha256: str | None = None,
     state_backup_sha256: str | None = None,
-    library_sha256: str | None = None,
 ) -> None:
     destination = under(mount, device.storage.koreader_root)
     _migrate_deployment_marker(
@@ -517,13 +503,7 @@ def migrate_legacy_markers(
     )
     _migrate_root_package_marker(mount, root_package_sha256)
     _migrate_library_marker(mount)
-    _migrate_launcher_script(mount)
-    _remove_legacy_marker(
-        under(mount, device.storage.koreader_root).with_name(
-            f"{Path(device.storage.koreader_root).name}.previous"
-        )
-        / LEGACY_DEPLOYMENT_MARKER
-    )
+    _remove_legacy_marker(under(mount, LEGACY_LAUNCHER_SCRIPT))
 
 
 def _remove_macos_metadata(*roots: Path) -> None:
@@ -747,7 +727,6 @@ def stage_koreader(
         syncthing_binary_hash,
         reading_streak_hash,
         state_backup_sha256,
-        library_sha256,
     )
     return {
         "koreader_root": str(destination),

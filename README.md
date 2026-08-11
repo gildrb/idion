@@ -19,6 +19,7 @@ One command from a mounted reader: verified backup, pinned artifacts, installed,
 - No telemetry, no accounts, no uploads, no crash reports.
 - No plugin enabled. `kobo_remote` ships present and disabled.
 - No service enabled in the default NickelMenu path. SSH does not autostart.
+- No writes to `KoboReader.sqlite`. Editing the vendor database is a stability risk, so vendor analytics rows already on the device stay.
 
 ### Install
 

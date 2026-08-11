@@ -211,6 +211,8 @@ class CLITests(unittest.TestCase):
             )
             legacy_manifest_path.parent.mkdir(parents=True)
             manifest_path.rename(legacy_manifest_path)
+            with legacy_manifest_path.open("a", encoding="utf-8") as handle:
+                handle.write('[library]\nfolders = ["Preserved"]\n')
             with patch.dict("os.environ", {"HOME": str(home)}, clear=False):
                 with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
                     self.assertEqual(
@@ -219,15 +221,17 @@ class CLITests(unittest.TestCase):
                                 "setup",
                                 "kobo-clara-bw",
                                 str(mount),
-                                "--launch-mode",
-                                "nickelmenu",
+                                "--koreader",
+                                str(koreader),
                                 "--yes",
                             ]
                         ),
                         0,
                     )
+            refreshed = ApplianceManifest.from_toml(manifest_path)
+            self.assertEqual(refreshed.library.folders, ("Preserved",))
             self.assertTrue(legacy_manifest_path.is_file())
-            self.assertFalse(manifest_path.exists())
+            self.assertTrue(manifest_path.is_file())
 
 
 if __name__ == "__main__":

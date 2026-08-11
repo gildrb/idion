@@ -213,7 +213,11 @@ def setup_command(arguments: argparse.Namespace) -> None:
         manifest_path = CONFIG_ROOT.expanduser() / f"{device.id}.toml"
     if artifact_flags:
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
-        data = _load_manifest_data(manifest_path) if manifest_path.is_file() else {}
+        source_path = manifest_path
+        legacy_path = LEGACY_CONFIG_ROOT.expanduser() / f"{device.id}.toml"
+        if not source_path.is_file() and legacy_path.is_file():
+            source_path = legacy_path
+        data = _load_manifest_data(source_path) if source_path.is_file() else {}
         _refresh_manifest_data(data, arguments, device, manifest_path)
         _write_manifest(manifest_path, data)
     elif not manifest_path.is_file():
