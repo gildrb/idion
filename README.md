@@ -16,6 +16,22 @@ calls. They detect one adapter, verify an off-device backup and SHA-256 pins,
 then stage a transactional KOReader tree and additive root installer. `plan`
 is read-only. `validate-live` connects only when explicitly run.
 
+The default Clara BW appliance is stripped and surveillance-resistant:
+
+- Nickel analytics, store/sync, and silent-upgrade endpoints are blackholed in
+  the pinned rootfs. `www.kobo.com` remains reachable for Nickel's captive-portal
+  check.
+- Nickel starts in airplane and sideloaded mode, and queued analytics events
+  are cleared on every apply.
+- Every installed KOReader plugin is disabled by the appliance policy,
+  including the shipped `kobo_remote` overlay. No plugin or network service is
+  enabled by default; SSH remains hardened if explicitly enabled.
+- The CLI makes no network calls and backups are automatic and off-device.
+
+The appliance does not rewrite `KoboReader.sqlite`; vendor database changes
+would carry unnecessary stability risk. These defaults are verified by tests
+and fake-mount runs, not yet by a complete hardware surveillance audit.
+
 ### Hardware status
 
 | Adapter | State | Supported operations |
@@ -63,6 +79,5 @@ rootfs and have no physical hardware test evidence.
 Manual backup, staging, planning, applying, live validation, and recovery
 instructions are in [manual operations](docs/manual-operations.md).
 
-Read [recovery](docs/recovery.md) before setup. Then fill in the manifest and
-run the setup command above. A deployment is not called hardware-stable until
-it passes the [acceptance protocol](docs/acceptance.md).
+Read [recovery](docs/recovery.md) before setup. A deployment is not called
+hardware-stable until it passes the [acceptance protocol](docs/acceptance.md).

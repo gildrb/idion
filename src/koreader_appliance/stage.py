@@ -11,6 +11,7 @@ import tempfile
 import zipfile
 
 from .model import Device
+from .nickel import apply_privacy
 from .manifest import DEFAULT_LIBRARY_FOLDERS
 from .safety import (
     SafetyError,
@@ -596,6 +597,7 @@ def stage_koreader(
         launcher_config = str(launcher)
 
     _remove_macos_metadata(mount)
+    apply_privacy(mount, device)
 
     ssh_enabled = None
     if device.platform == "kobo" and launch_mode == "autostart":

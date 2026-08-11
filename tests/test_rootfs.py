@@ -80,7 +80,7 @@ class RootPackageTests(unittest.TestCase):
                 self.assertNotIn("./etc/init.d/ssh", names)
                 hosts = archive.extractfile("./etc/hosts")
                 self.assertIsNotNone(hosts)
-                self.assertNotIn(b"kobobooks.com", hosts.read())  # type: ignore[union-attr]
+                self.assertIn(b"api.kobobooks.com", hosts.read())  # type: ignore[union-attr]
 
             self.assertEqual(result["host_public_key"], "not-applicable")
 
