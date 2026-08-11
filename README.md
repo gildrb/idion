@@ -1,83 +1,76 @@
-# KOReader Appliance
+# koreader-appliance
 
-KOReader Appliance installs [KOReader](https://github.com/koreader/koreader), a
-free and open-source reading application, onto a supported e-reader from your
-computer. It takes a full verified backup before changing the mounted reader.
-A TOML configuration records the input paths and hashes so the same state can
-be reproduced.
+Puts [KOReader](https://github.com/koreader/koreader) on a Kobo and strips the rest.
 
-Start with [Setup](#setup): find your model, prepare its manifest, and run the
-one-shot command after mounting the reader.
+One command from a mounted reader: verified backup, pinned artifacts, installed, done.
 
-### What this does and does not do
+## Does
 
-Commands run locally, create no accounts, upload nothing, and make no network
-calls. They detect one adapter, verify an off-device backup and SHA-256 pins,
-then stage a transactional KOReader tree and additive root installer. `plan`
-is read-only. `validate-live` connects only when explicitly run.
+- Backs up the reader off-device and verifies the backup before writing anything.
+- Pins every artifact by SHA-256 in `~/.config/koreader-appliance/<device>.toml`, so the same install is reproducible.
+- Stages KOReader transactionally, keeping the previous tree for rollback.
+- Blackholes Nickel's analytics, store/sync, and silent-upgrade endpoints, and starts Nickel in airplane and sideloaded mode.
+- Leaves the default boot chain stock: Kobo, NickelMenu, KOReader.
 
-The default Clara BW appliance is stripped and surveillance-resistant:
+## Does not
 
-- Nickel analytics, store/sync, and silent-upgrade endpoints are blackholed in
-  the pinned rootfs. `www.kobo.com` remains reachable for Nickel's captive-portal
-  check.
-- Nickel starts in airplane and sideloaded mode, and queued analytics events
-  are cleared on every apply.
-- Every installed KOReader plugin is disabled by the appliance policy,
-  including the shipped `kobo_remote` overlay. No plugin or network service is
-  enabled by default; SSH remains hardened if explicitly enabled.
-- The CLI makes no network calls and backups are automatic and off-device.
+- No network calls during setup. Download the archives yourself.
+  `validate-live` connects only when explicitly run.
+- No telemetry, no accounts, no uploads, no crash reports.
+- No plugin enabled. `kobo_remote` ships present and disabled.
+- No service enabled in the default NickelMenu path. SSH does not autostart.
+- No library folders invented in `Books/`.
+- No writes to `KoboReader.sqlite`. Editing the vendor database is a stability risk, so vendor analytics rows stay where they are.
+- No Kindle. Detection and backup only; installation is refused.
 
-The appliance does not rewrite `KoboReader.sqlite`; vendor database changes
-would carry unnecessary stability risk. These defaults are verified by tests
-and fake-mount runs, not yet by a complete hardware surveillance audit.
+## Install
 
-### Hardware status
+```sh
+git clone https://github.com/gildrb/koreader-appliance
+cd koreader-appliance
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install -e .
+```
 
-| Adapter | State | Supported operations |
-|---|---|---|
-| Kobo Clara BW (P365) | Verified | Detect, back up, build, and stage |
-| Clara HD, Clara 2E, Clara Colour, Libra H2O, Libra 2, Libra Colour, Nia, Sage, Elipsa 2E, Forma | Unverified | KoboRoot.tgz path; requires `--allow-unverified` |
-| Kindle | Blocked | Detect and back up only; jailbreak and KUAL/MRPI adapter required |
+Download the [KOReader Kobo archive](https://github.com/koreader/koreader/releases) and [NickelMenu `KoboRoot.tgz`](https://github.com/pgaskin/NickelMenu/releases) yourself.
 
-Kindle installation is refused. The unverified Kobo adapters use the shared
-rootfs and have no physical hardware test evidence.
+## Use
 
-### Setup
+Mount the reader, then:
 
-1. Create an environment from a repository clone:
+```sh
+koreader-appliance setup kobo-clara-bw /Volumes/KOBOeReader \
+  --koreader ~/Downloads/koreader-kobo.zip \
+  --nickelmenu-package ~/Downloads/NickelMenu-KoboRoot.tgz \
+  --yes
+```
 
-   ```sh
-   python3 -m venv .venv
-   . .venv/bin/activate
-   python -m pip install -e .
-   ```
+Eject, let the reader apply the update, then use NickelMenu to start KOReader.
+Done.
 
-2. Download the KOReader Kobo archive and NickelMenu `KoboRoot.tgz` yourself.
-   The tool makes no network calls. Mount the reader, then run one command:
+Setup detects the adapter, builds the root package, computes the hashes, writes the manifest, backs up, and applies. Run it again whenever; it re-verifies the same state instead of reinstalling it. Pass only the artifact flags that changed to refresh an existing manifest; pass none to reuse it.
 
-   ```sh
-   koreader-appliance setup kobo-clara-bw /Volumes/KOBOeReader \
-     --koreader ~/Downloads/koreader-kobo.zip \
-     --launch-mode nickelmenu \
-     --nickelmenu-package ~/Downloads/NickelMenu-KoboRoot.tgz \
-     --yes
-   ```
+Autostart into KOReader is a separate launch mode requiring `--launch-mode autostart` with `--authorized-key`, `--scp`, `--sftp-server`, and `--rsync` instead of `--nickelmenu-package`. It starts the root OpenSSH service. NickelMenu is the tested path.
 
-   Setup detects the adapter, builds the pinned root package under
-   `~/.local/state/koreader-appliance/`, computes the archive hashes, writes
-   `~/.config/koreader-appliance/kobo-clara-bw.toml`, creates and verifies an
-   off-device backup, and applies the manifest. The generated manifest path is
-   printed. Repeating the command re-verifies the same state without
-   redeploying it.
+## Hardware
 
-   For autostart mode, supply `--authorized-key`, `--scp`, `--sftp-server`, and
-   `--rsync` instead of `--nickelmenu-package`. The backup stays outside the
-   reader. An existing manifest may be refreshed with only the artifact flags
-   that changed; with no flags, setup uses it unchanged.
+| Adapter | State | Operations |
+| --- | --- | --- |
+| Kobo Clara BW (P365) | Verified | Detect, back up, build, stage |
+| Clara HD, Clara 2E, Clara Colour, Libra H2O, Libra 2, Libra Colour, Nia, Sage, Elipsa 2E, Forma | Unverified | Detect, back up, build, stage with `--allow-unverified` |
+| Kindle | Blocked | Detect and back up only |
 
-Manual backup, staging, planning, applying, live validation, and recovery
-instructions are in [manual operations](docs/manual-operations.md).
+Unverified adapters share the Kobo rootfs and have no hardware test evidence. The privacy defaults are covered by tests and fake-mount runs, not by a hardware surveillance audit.
 
-Read [recovery](docs/recovery.md) before setup. A deployment is not called
-hardware-stable until it passes the [acceptance protocol](docs/acceptance.md).
+## Docs
+
+[Recovery](docs/recovery.md), read before setup<br>
+[Manual operations](docs/manual-operations.md)<br>
+[Acceptance protocol](docs/acceptance.md)<br>
+[Architecture](docs/architecture.md)<br>
+[Adding a device](docs/adding-a-device.md)
+
+## Safety
+
+Keep credentials, private keys, Wi-Fi data, books, firmware images, backups, and generated installers out of Git. Every write to a mounted reader follows device detection and a verified backup. A deployment is not hardware-stable until it passes the [acceptance protocol](docs/acceptance.md).
