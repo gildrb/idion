@@ -14,8 +14,9 @@ requires a jailbreak plus a KUAL/MRPI adapter; this project will not send a
 Kobo `KoboRoot.tgz` to it.
 
 Copy `adapters/_template/device.toml` into `adapters/<device-id>/device.toml`
-and give the adapter a unique ID. Keep its profiles, README, and any model
-specific rootfs in that same directory.
+and give the adapter a unique ID. Keep model-specific profiles, README, and
+rootfs in that directory; Kobo adapters may fall back to the shared
+`adapters/_kobo-common/` profiles and rootfs.
 
 ## Define before coding
 

@@ -7,7 +7,7 @@ name = "koreader-appliance"
 version = "1.0.0"
 description = "Deterministic, additive KOReader installation tooling for e-readers"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11.4"
 license = "GPL-3.0-or-later"
 authors = [{ name = "Gil Rodrigues" }]
 dependencies = []

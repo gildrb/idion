@@ -9,7 +9,7 @@ import tomllib
 from .safety import SafetyError
 
 
-DEFAULT_LIBRARY_FOLDERS = ("Programming", "Linux", "Math", "Papers", "Manuals")
+DEFAULT_LIBRARY_FOLDERS: tuple[str, ...] = ()
 _SHA256 = re.compile(r"^[0-9a-fA-F]{64}$")
 
 
@@ -148,8 +148,14 @@ class ApplianceManifest:
             )
             settings = (
                 SettingsConfig(
-                    profile=cls._path(
-                        source, settings_data["profile"], "settings.profile"
+                    profile=(
+                        Path(settings_data["profile"]).expanduser()
+                        if isinstance(settings_data.get("profile"), str)
+                        and len(Path(settings_data["profile"]).parts) == 1
+                        and not settings_data["profile"].startswith((".", "~"))
+                        else cls._path(
+                            source, settings_data["profile"], "settings.profile"
+                        )
                     )
                 )
                 if settings_data is not None
@@ -299,8 +305,6 @@ class ApplianceManifest:
     def validate(self) -> None:
         if not self.device:
             raise SafetyError("appliance manifest device is empty")
-        if not self.library.folders:
-            raise SafetyError("library.folders must not be empty")
         if (self.library.restore is None) != (self.library.sha256 is None):
             raise SafetyError("library.restore and library.sha256 must be set together")
         if self.launch.mode not in {"autostart", "nickelmenu"}:

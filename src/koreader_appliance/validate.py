@@ -181,7 +181,12 @@ def validate_live(
     build_manifest = build_manifest.expanduser().resolve()
     if not build_manifest.is_file():
         raise SafetyError(f"build manifest is not readable: {build_manifest}")
-    manifest = json.loads(build_manifest.read_text(encoding="utf-8"))
+    try:
+        manifest = json.loads(build_manifest.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise SafetyError(
+            f"build manifest is not valid JSON: {build_manifest}: {error}"
+        ) from error
     if manifest.get("schema") != 1:
         raise SafetyError(f"unsupported build manifest: {build_manifest}")
 

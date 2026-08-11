@@ -513,9 +513,9 @@ def stage_koreader(
         _atomic_text(under(mount, ".stignore"), SYNCTHING_IGNORE)
 
     trigger = under(mount, device.storage.installer_trigger)
-    _atomic_copy(root_package, trigger)
-
     source_hash = _sha256(root_package)
+    if not trigger.is_file() or _sha256(trigger) != source_hash:
+        _atomic_copy(root_package, trigger)
     staged_hash = _sha256(trigger)
     if source_hash != staged_hash:
         raise OSError("root package changed while staging")

@@ -29,7 +29,7 @@ rootfs and have no physical hardware test evidence.
 
 ### Setup
 
-1. Find your model in the table. Create an environment:
+1. Create an environment from a repository clone:
 
    ```sh
    python3 -m venv .venv
@@ -37,39 +37,28 @@ rootfs and have no physical hardware test evidence.
    python -m pip install -e .
    ```
 
-2. Download the Kobo KOReader release and the stable NickelMenu
-   `KoboRoot.tgz`. Build the minimal pinned root package:
+2. Download the KOReader Kobo archive and NickelMenu `KoboRoot.tgz` yourself.
+   The tool makes no network calls. Mount the reader, then run one command:
 
    ```sh
-   koreader-appliance build-kobo-root --device kobo-clara-bw \
+   koreader-appliance setup kobo-clara-bw /Volumes/KOBOeReader \
+     --koreader ~/Downloads/koreader-kobo.zip \
      --launch-mode nickelmenu \
      --nickelmenu-package ~/Downloads/NickelMenu-KoboRoot.tgz \
-     --output ~/ReaderBuilds/clara-bw
+     --yes
    ```
 
-3. Copy the example manifest, fill in its paths and device ID, then hash the
-   KOReader archive and root package:
+   Setup detects the adapter, builds the pinned root package under
+   `~/.local/state/koreader-appliance/`, computes the archive hashes, writes
+   `~/.config/koreader-appliance/kobo-clara-bw.toml`, creates and verifies an
+   off-device backup, and applies the manifest. The generated manifest path is
+   printed. Repeating the command re-verifies the same state without
+   redeploying it.
 
-   ```sh
-   mkdir -p ~/.config/koreader-appliance
-   cp adapters/_kobo-common/profiles/appliance.toml.example \
-     ~/.config/koreader-appliance/kobo-clara-bw.toml
-   sha256sum ~/Downloads/koreader-kobo.zip \
-     ~/ReaderBuilds/clara-bw/KoboRoot.tgz
-   ```
-
-   Download KOReader from its
-   [release files](https://github.com/koreader/koreader/releases). Put both
-   hashes and the backup manifest path in the TOML file.
-
-4. Mount the reader and run setup:
-
-   ```sh
-   koreader-appliance kobo-clara-bw /Volumes/KOBOeReader --yes
-   ```
-
-   Setup detects the reader, verifies or creates the backup, checks both pins,
-   and applies the manifest. The backup stays outside the reader.
+   For autostart mode, supply `--authorized-key`, `--scp`, `--sftp-server`, and
+   `--rsync` instead of `--nickelmenu-package`. The backup stays outside the
+   reader. An existing manifest may be refreshed with only the artifact flags
+   that changed; with no flags, setup uses it unchanged.
 
 Manual backup, staging, planning, applying, live validation, and recovery
 instructions are in [manual operations](docs/manual-operations.md).

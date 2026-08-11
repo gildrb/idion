@@ -7,7 +7,7 @@ firmware and hardware.
 
 ## Release gates
 
-1. Run the Python test suite and compile check on Python 3.11, 3.12, and 3.13.
+1. Run the Python test suite and compile check on Python 3.11.4+, 3.12, and 3.13.
 2. Verify every downloaded artifact against its manifest SHA-256 digest.
 3. Create and verify an off-device backup before staging.
 4. Confirm Nickel boots and opens a book before the first KOReader launch.
@@ -19,7 +19,8 @@ firmware and hardware.
    menu. Record the reconnect time; no cycle may exceed ten seconds.
 8. Leave the reader in normal daily use for seven days. Record battery level,
    unexpected exits, failed wakes, and manual Bluetooth interventions.
-9. Verify key-only SSH on port 2222, reject password authentication, then
+9. Generate and load the pinned `ssh-config` profile first. Verify key-only SSH
+   on port 2222, reject password authentication, then
    repeat with Wi-Fi disabled to confirm the service is unreachable.
 10. Re-run `plan`; every state item except the consumed root-package trigger
     must be `ok`.

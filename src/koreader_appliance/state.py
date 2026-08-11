@@ -5,6 +5,7 @@ from pathlib import Path
 from .backup import verify_backup_manifest
 from .manifest import ApplianceManifest
 from .model import Device
+from .resources import settings_profile
 from .safety import SafetyError, require_directory, under
 from .stage import (
     EXCLUDE_SYNC_FOLDERS,
@@ -252,7 +253,9 @@ def apply(
             manifest.koreader.path,
             manifest.root_package.path,
             device,
-            manifest.settings.profile if manifest.settings is not None else None,
+            settings_profile(device, manifest.settings.profile)
+            if manifest.settings is not None
+            else None,
             manifest.library.folders,
             manifest.launch.mode,
             manifest.ssh.authorized_key if manifest.ssh is not None else None,
