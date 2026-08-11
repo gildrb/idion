@@ -2,14 +2,14 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from koreader_appliance.nickel import (
+from idion.nickel import (
     ANALYTICS_CONFIG,
     READER_CONFIG,
     apply_privacy,
     privacy_is_current,
 )
-from koreader_appliance.registry import Registry
-from koreader_appliance.safety import SafetyError
+from idion.registry import Registry
+from idion.safety import SafetyError
 
 
 REPOSITORY = Path(__file__).resolve().parents[1]

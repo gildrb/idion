@@ -3,8 +3,8 @@ import tarfile
 import tempfile
 import unittest
 
-from koreader_appliance.registry import Registry
-from koreader_appliance.rootfs import build_kobo_root
+from idion.registry import Registry
+from idion.rootfs import build_kobo_root
 
 
 REPOSITORY = Path(__file__).resolve().parents[1]

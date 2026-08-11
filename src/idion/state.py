@@ -10,11 +10,13 @@ from .resources import settings_profile
 from .safety import SafetyError, require_directory, under
 from .stage import (
     EXCLUDE_SYNC_FOLDERS,
+    LEGACY_LAUNCHER_SCRIPT,
     NICKELMENU_CONFIG,
     NICKELMENU_LAUNCHER,
     SYNCTHING_IGNORE,
     deployment_is_current,
     library_is_current,
+    migrate_legacy_markers,
     root_package_is_applied,
     stage_koreader,
 )
@@ -191,8 +193,10 @@ def plan(
     if device.platform == "kobo" and manifest.launch.mode == "nickelmenu":
         launcher = under(mount, ".adds/nm/koreader")
         launcher_script = under(
-            mount, ".adds/koreader-appliance/koreader-launch.sh"
+            mount, ".adds/idion/koreader-launch.sh"
         )
+        if not launcher_script.is_file():
+            launcher_script = under(mount, LEGACY_LAUNCHER_SCRIPT)
         config = under(mount, ".kobo/Kobo/Kobo eReader.conf")
         steps.append(
             _step(
@@ -280,4 +284,16 @@ def apply(
             state_source,
             state_backup_sha256,
         )
+    migrate_legacy_markers(
+        mount,
+        device,
+        manifest.koreader.sha256,
+        manifest.launch.mode,
+        manifest.root_package.sha256,
+        manifest.syncthing.plugin.sha256 if manifest.syncthing else None,
+        manifest.syncthing.binary.sha256 if manifest.syncthing else None,
+        manifest.reading_streak.sha256 if manifest.reading_streak else None,
+        state_backup_sha256,
+        manifest.library.sha256,
+    )
     return plan(mount, manifest, device)

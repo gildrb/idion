@@ -14,7 +14,7 @@ def set_autostart_disabled(mount: Path, device: Device, disabled: bool) -> Path:
     if disabled:
         marker.parent.mkdir(parents=True, exist_ok=True)
         marker.write_text(
-            "KOReader autostart disabled by koreader-appliance recovery.\n",
+            "KOReader autostart disabled by idion recovery.\n",
             encoding="utf-8",
         )
     else:

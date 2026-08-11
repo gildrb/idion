@@ -3,7 +3,7 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "koreader-appliance"
+name = "idion"
 version = "1.0.0"
 description = "Deterministic, additive KOReader installation tooling for e-readers"
 readme = "README.md"
@@ -28,7 +28,7 @@ Repository = "https://github.com/gildrb/idion"
 Issues = "https://github.com/gildrb/idion/issues"
 
 [project.scripts]
-koreader-appliance = "koreader_appliance.cli:main"
+idion = "idion.cli:main"
 
 [tool.setuptools]
 package-dir = { "" = "src" }

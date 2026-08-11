@@ -27,6 +27,11 @@ from .state import (
 from .validate import validate_live
 
 
+CONFIG_ROOT = Path("~/.config/idion")
+LEGACY_CONFIG_ROOT = Path("~/.config/koreader-appliance")
+STATE_ROOT = Path("~/.local/state/idion")
+
+
 class _ArgumentParser(argparse.ArgumentParser):
     def error(self, message: str) -> None:
         raise SafetyError(message)
@@ -34,7 +39,7 @@ class _ArgumentParser(argparse.ArgumentParser):
 
 def _package_version() -> str:
     try:
-        return version("koreader-appliance")
+        return version("idion")
     except PackageNotFoundError:
         return "1.0.0"
 
@@ -52,6 +57,12 @@ def _device(arguments: argparse.Namespace):
 
 def _json(value: object) -> None:
     print(json.dumps(value, indent=2, sort_keys=True))
+
+
+def _default_manifest_path(device) -> Path:
+    current = CONFIG_ROOT.expanduser() / f"{device.id}.toml"
+    legacy = LEGACY_CONFIG_ROOT.expanduser() / f"{device.id}.toml"
+    return current if current.is_file() or not legacy.is_file() else legacy
 
 
 def devices_command(arguments: argparse.Namespace) -> None:
@@ -186,10 +197,6 @@ def setup_command(arguments: argparse.Namespace) -> None:
         raise SafetyError("one-shot setup requires --yes")
     registry = _registry(arguments)
     device = registry.get(arguments.device)
-    manifest_path = arguments.manifest or (
-        Path("~/.config/koreader-appliance").expanduser()
-        / f"{device.id}.toml"
-    )
     artifact_flags = any(
         value is not None
         for value in (
@@ -201,6 +208,9 @@ def setup_command(arguments: argparse.Namespace) -> None:
             arguments.rsync,
         )
     )
+    manifest_path = arguments.manifest or _default_manifest_path(device)
+    if artifact_flags and arguments.manifest is None:
+        manifest_path = CONFIG_ROOT.expanduser() / f"{device.id}.toml"
     if artifact_flags:
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
         data = _load_manifest_data(manifest_path) if manifest_path.is_file() else {}
@@ -280,7 +290,7 @@ def _refresh_manifest_data(
         "backup",
         {
             "manifest": str(
-                Path("~/.local/state/koreader-appliance").expanduser()
+                STATE_ROOT.expanduser()
                 / device.id
                 / "backup"
                 / "backup-manifest.json"
@@ -313,7 +323,7 @@ def _refresh_manifest_data(
     )
     if build_requested:
         output = (
-            Path("~/.local/state/koreader-appliance").expanduser()
+            STATE_ROOT.expanduser()
             / device.id
         )
         output.mkdir(parents=True, exist_ok=True)
@@ -405,7 +415,7 @@ def _find_mount(
 
 
 def parser() -> argparse.ArgumentParser:
-    result = _ArgumentParser(prog="koreader-appliance")
+    result = _ArgumentParser(prog="idion")
     result.add_argument(
         "--version", action="version", version=f"%(prog)s {_package_version()}"
     )

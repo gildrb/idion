@@ -3,9 +3,9 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from koreader_appliance.backup import create_backup
-from koreader_appliance.registry import Registry
-from koreader_appliance.safety import SafetyError
+from idion.backup import create_backup
+from idion.registry import Registry
+from idion.safety import SafetyError
 
 
 REPOSITORY = Path(__file__).resolve().parents[1]

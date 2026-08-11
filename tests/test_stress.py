@@ -6,11 +6,11 @@ import tempfile
 import unittest
 import zipfile
 
-from koreader_appliance.cli import main
-from koreader_appliance.manifest import ApplianceManifest
-from koreader_appliance.registry import Registry
-from koreader_appliance.safety import SafetyError
-from koreader_appliance.state import plan
+from idion.cli import main
+from idion.manifest import ApplianceManifest
+from idion.registry import Registry
+from idion.safety import SafetyError
+from idion.state import plan
 
 
 REPOSITORY = Path(__file__).resolve().parents[1]
