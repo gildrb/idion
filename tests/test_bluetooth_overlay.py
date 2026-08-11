@@ -36,29 +36,25 @@ class BluetoothOverlayTests(unittest.TestCase):
         self.assertNotIn("waitForBluetoothInputDevice", connection)
         self.assertNotIn("ffiUtil.sleep", connection)
 
-    def test_appliance_policy_keeps_only_intentional_background_plugins(self) -> None:
+    def test_appliance_policy_disables_every_plugin_defensively(self) -> None:
         patches = PLUGIN.parents[1] / "patches"
         policy = (patches / "2-appliance-policy.lua").read_text(encoding="utf-8")
         cleanup = (patches / "9-appliance-stop-ssh.lua").read_text(encoding="utf-8")
-        disabled_plugins = policy.split("}) do", 1)[0]
 
-        self.assertIn('"timesync",', policy)
+        self.assertIn('local data_storage = require("datastorage")', policy)
+        self.assertIn('lfs.currentdir() .. "/plugins"', policy)
+        self.assertIn('data_storage:getDataDir() .. "/plugins"', policy)
+        self.assertIn('readSetting("extra_plugin_paths")', policy)
+        self.assertIn("for entry in lfs.dir(path) do", policy)
+        self.assertNotIn("DataStorage:", policy)
+        self.assertIn('disabled[entry:sub(1, -10)] = true', policy)
+        self.assertIn("disable_known_plugins()", policy)
         self.assertIn('G_reader_settings:saveSetting("SSH_key_only_auth", true)', policy)
-        self.assertIn(
-            'G_reader_settings:saveSetting("syncthing_network_access", "lan")',
-            policy,
-        )
-        self.assertIn(
-            'G_reader_settings:saveSetting("syncthing_autostart_mode", "off")',
-            policy,
-        )
-        self.assertIn(
-            'G_reader_settings:saveSetting("syncthing_periodic_sync_enabled", false)',
-            policy,
-        )
-        self.assertNotIn('"statistics",', disabled_plugins)
-        self.assertNotIn('"kobo_remote",', disabled_plugins)
-        self.assertNotIn('"readingstreak",', disabled_plugins)
+        self.assertIn('G_reader_settings:saveSetting("SSH_autostart", false)', policy)
+        self.assertNotIn('saveSetting("syncthing_', policy)
+        self.assertIn('"statistics",', policy)
+        self.assertIn('"kobo_remote",', policy)
+        self.assertIn('"readingstreak",', policy)
         self.assertIn("dropbear_koreader.pid", cleanup)
 
 

@@ -1,6 +1,7 @@
 from pathlib import Path
 from contextlib import redirect_stderr, redirect_stdout
 import io
+import json
 import tempfile
 import tarfile
 import unittest
@@ -146,7 +147,26 @@ class CLITests(unittest.TestCase):
             with patch.dict("os.environ", {"HOME": str(home)}, clear=False):
                 with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
                     self.assertEqual(cli.main(arguments), 0)
+                (mount / ".kobo/Kobo/Analytics.conf").write_text(
+                    "[General]\nClientID=preserve\nGAQueue=fresh\n",
+                    encoding="utf-8",
+                )
+                second_output = io.StringIO()
+                with redirect_stdout(second_output), redirect_stderr(io.StringIO()):
                     self.assertEqual(cli.main(arguments), 0)
+                second_result = json.loads(second_output.getvalue())
+                self.assertTrue(second_result["state"])
+                self.assertTrue(
+                    all(step["status"] == "ok" for step in second_result["state"])
+                )
+                self.assertEqual(
+                    next(
+                        step["status"]
+                        for step in second_result["state"]
+                        if step["action"] == "nickel-privacy"
+                    ),
+                    "ok",
+                )
                 output = io.StringIO()
                 error = io.StringIO()
                 with redirect_stdout(output), redirect_stderr(error):

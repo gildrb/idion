@@ -22,14 +22,24 @@ public host identity for pinning.
 4. Disable passwords, forwarding, tunnels, and connection sharing.
 5. Stop temporary passwordless recovery services immediately after repair.
 
+The default NickelMenu appliance does not autostart SSH or any other network
+service. KOReader's SSH settings remain key-only and hardened for an operator
+who explicitly enables diagnostics. The shipped policy disables every
+installed KOReader plugin, including `kobo_remote`, and the rootfs blocks
+Nickel analytics, store/sync, and silent OTA upgrade endpoints. The CLI itself
+makes no network calls.
+
 ## Network state
 
 Wi-Fi state belongs to the reader. No adapter may turn Wi-Fi on, turn it off,
 or start an unrelated action because the user changed it. A reader with Wi-Fi
 off is deliberately unreachable.
 
+Nickel privacy hardening sets airplane and sideloaded mode and clears the
+queued analytics file on every apply. It does not rewrite `KoboReader.sqlite`;
+avoiding vendor-database surgery is an intentional stability limitation.
+
 ## Report a problem
 
 Send security-sensitive reports privately to the repository owner. Do not
 attach installers, backups, runtime evidence, or key material.
-
