@@ -123,26 +123,18 @@ def apply_privacy(mount: Path, device: Device) -> None:
     # Blackholed endpoints cannot drain this queue; clearing it avoids
     # repeatedly rewriting an ever-growing telemetry file in flash.
     analytics = under(mount, ANALYTICS_CONFIG)
-    section = _section_for_key(analytics, "GAQueue", "Analytics")
-    _set_values(analytics, {section: {"GAQueue": "@Invalid()"}})
+    if analytics.is_file():
+        section = _section_for_key(analytics, "GAQueue", "General")
+        _set_values(analytics, {section: {"GAQueue": "@Invalid()"}})
 
 
 def privacy_is_current(mount: Path, device: Device) -> bool:
     if device.platform != "kobo":
         return True
-    for path, section, key, expected in (
-        (READER_CONFIG, "ApplicationPreferences", "AIRPLANE_MODE", "true"),
-        (READER_CONFIG, "ApplicationPreferences", "SideloadedMode", "true"),
-    ):
-        values = _values(under(mount, path))
-        if values.get((section, key)) != expected:
-            return False
-    analytics_values = _values(under(mount, ANALYTICS_CONFIG))
-    if analytics_values.get(("Analytics", "GAQueue")) == "@Invalid()":
-        return True
-    return any(
-        key == "GAQueue" and value == "@Invalid()"
-        for (_, key), value in analytics_values.items()
+    values = _values(under(mount, READER_CONFIG))
+    return (
+        values.get(("ApplicationPreferences", "AIRPLANE_MODE")) == "true"
+        and values.get(("ApplicationPreferences", "SideloadedMode")) == "true"
     )
 
 
