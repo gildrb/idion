@@ -23,9 +23,9 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/gildrb/koreader-appliance"
-Repository = "https://github.com/gildrb/koreader-appliance"
-Issues = "https://github.com/gildrb/koreader-appliance/issues"
+Homepage = "https://github.com/gildrb/idion"
+Repository = "https://github.com/gildrb/idion"
+Issues = "https://github.com/gildrb/idion/issues"
 
 [project.scripts]
 koreader-appliance = "koreader_appliance.cli:main"
