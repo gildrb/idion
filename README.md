@@ -23,8 +23,8 @@ One command from a mounted reader: verified backup, pinned artifacts, installed,
 ### Install
 
 ```sh
-git clone https://github.com/gildrb/koreader-appliance
-cd koreader-appliance
+git clone https://github.com/gildrb/idion
+cd idion
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install -e .
@@ -50,7 +50,7 @@ Setup detects the adapter, builds the root package, computes the hashes, writes 
 
 Autostart into KOReader is a separate launch mode requiring `--launch-mode autostart` with `--authorized-key`, `--scp`, `--sftp-server`, and `--rsync` instead of `--nickelmenu-package`. It starts the root OpenSSH service. NickelMenu is the tested path.
 
-## Recovery
+### Recovery
 
 Default NickelMenu mode boots Nickel before KOReader. A broken KOReader is not a
 broken reader.
@@ -59,7 +59,7 @@ Mount the reader and rerun `setup`, or swap `.adds/koreader` for
 If it will not mount, restore the off-device backup. For firmware, use Kobo's
 official image for the exact product code and verify it first.
 
-## Commands
+### Commands
 
 | Action | Command |
 | --- | --- |
