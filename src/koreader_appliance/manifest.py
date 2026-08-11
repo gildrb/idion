@@ -7,6 +7,7 @@ import re
 import tomllib
 
 from .safety import SafetyError
+from .resources import is_bare_profile_name
 
 
 DEFAULT_LIBRARY_FOLDERS: tuple[str, ...] = ()
@@ -151,8 +152,7 @@ class ApplianceManifest:
                     profile=(
                         Path(settings_data["profile"]).expanduser()
                         if isinstance(settings_data.get("profile"), str)
-                        and len(Path(settings_data["profile"]).parts) == 1
-                        and not settings_data["profile"].startswith((".", "~"))
+                        and is_bare_profile_name(settings_data["profile"])
                         else cls._path(
                             source, settings_data["profile"], "settings.profile"
                         )

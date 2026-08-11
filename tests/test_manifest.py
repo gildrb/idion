@@ -214,7 +214,18 @@ class ManifestTests(unittest.TestCase):
             self.assertTrue(before)
             self.assertTrue(all(step["status"] == "pending" for step in before))
             self.assertTrue(all(step["status"] == "ok" for step in apply(mount, manifest, device)))
+            (mount / ".kobo/KoboRoot.tgz").unlink()
+            after_consumption = plan(mount, manifest, device)
+            self.assertEqual(
+                next(
+                    step["status"]
+                    for step in after_consumption
+                    if step["action"] == "installer-trigger"
+                ),
+                "ok",
+            )
             self.assertTrue(all(step["status"] == "ok" for step in apply(mount, manifest, device)))
+            self.assertFalse((mount / ".kobo/KoboRoot.tgz").exists())
             self.assertEqual(
                 (mount / ".adds/koreader/settings/statistics.sqlite3").read_bytes(),
                 b"statistics",

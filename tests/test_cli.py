@@ -147,6 +147,30 @@ class CLITests(unittest.TestCase):
                 with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
                     self.assertEqual(cli.main(arguments), 0)
                     self.assertEqual(cli.main(arguments), 0)
+                output = io.StringIO()
+                error = io.StringIO()
+                with redirect_stdout(output), redirect_stderr(error):
+                    self.assertEqual(
+                        cli.main(
+                            [
+                                "setup",
+                                "kobo-clara-bw",
+                                str(mount),
+                                "--launch-mode",
+                                "nickelmenu",
+                                "--yes",
+                            ]
+                        ),
+                        0,
+                    )
+                self.assertEqual(error.getvalue(), "")
+                self.assertEqual(
+                    ApplianceManifest.from_toml(
+                        home
+                        / ".config/koreader-appliance/kobo-clara-bw.toml"
+                    ).launch.mode,
+                    "nickelmenu",
+                )
 
             manifest_path = (
                 home

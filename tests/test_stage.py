@@ -8,6 +8,7 @@ import zipfile
 from koreader_appliance.registry import Registry
 from koreader_appliance.safety import SafetyError
 from koreader_appliance.stage import (
+    ROOT_PACKAGE_APPLIED_MARKER,
     SYNCTHING_IGNORE,
     library_tree_hash,
     stage_koreader,
@@ -18,6 +19,54 @@ REPOSITORY = Path(__file__).resolve().parents[1]
 
 
 class StageTests(unittest.TestCase):
+    def test_consumed_root_package_converges_without_restaging(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            mount = root / "reader"
+            (mount / ".kobo").mkdir(parents=True)
+            (mount / ".kobo/version").write_text("P365\n")
+            archive = root / "koreader.zip"
+            with zipfile.ZipFile(archive, "w") as output:
+                output.writestr("koreader/reader.lua", "return true\n")
+                output.writestr("koreader/koreader.sh", "#!/bin/sh\n")
+            package = root / "KoboRoot.tgz"
+            package.write_bytes(b"root-package")
+            device = Registry(REPOSITORY / "adapters").detect(mount)
+
+            stage_koreader(mount, archive, package, device, launch_mode="nickelmenu")
+            trigger = mount / ".kobo/KoboRoot.tgz"
+            marker = mount / ROOT_PACKAGE_APPLIED_MARKER
+            trigger.unlink()
+            self.assertTrue(marker.is_file())
+
+            stage_koreader(mount, archive, package, device, launch_mode="nickelmenu")
+            self.assertFalse(trigger.exists())
+
+    def test_changed_or_unrecorded_root_package_is_staged(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            mount = root / "reader"
+            (mount / ".kobo").mkdir(parents=True)
+            (mount / ".kobo/version").write_text("P365\n")
+            archive = root / "koreader.zip"
+            with zipfile.ZipFile(archive, "w") as output:
+                output.writestr("koreader/reader.lua", "return true\n")
+                output.writestr("koreader/koreader.sh", "#!/bin/sh\n")
+            package = root / "KoboRoot.tgz"
+            package.write_bytes(b"root-package")
+            device = Registry(REPOSITORY / "adapters").detect(mount)
+            stage_koreader(mount, archive, package, device, launch_mode="nickelmenu")
+            trigger = mount / ".kobo/KoboRoot.tgz"
+            marker = mount / ROOT_PACKAGE_APPLIED_MARKER
+
+            package.write_bytes(b"changed-package")
+            stage_koreader(mount, archive, package, device, launch_mode="nickelmenu")
+            self.assertEqual(trigger.read_bytes(), b"changed-package")
+            marker.unlink()
+            trigger.unlink()
+            stage_koreader(mount, archive, package, device, launch_mode="nickelmenu")
+            self.assertEqual(trigger.read_bytes(), b"changed-package")
+
     def test_installs_pinned_reading_streak_plugin(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

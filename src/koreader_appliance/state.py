@@ -14,6 +14,7 @@ from .stage import (
     SYNCTHING_IGNORE,
     deployment_is_current,
     library_is_current,
+    root_package_is_applied,
     stage_koreader,
 )
 from .ssh import read_authorized_key
@@ -95,9 +96,12 @@ def plan(
                 "installer-trigger",
                 trigger,
                 "ok"
-                if trigger.is_file()
-                and ApplianceManifest.hash_file(trigger)
-                == manifest.root_package.sha256
+                if (
+                    trigger.is_file()
+                    and ApplianceManifest.hash_file(trigger)
+                    == manifest.root_package.sha256
+                )
+                or root_package_is_applied(mount, manifest.root_package.sha256)
                 else "pending",
             )
         )

@@ -199,7 +199,6 @@ def setup_command(arguments: argparse.Namespace) -> None:
             arguments.scp,
             arguments.sftp_server,
             arguments.rsync,
-            arguments.launch_mode,
         )
     )
     if artifact_flags:
@@ -207,7 +206,6 @@ def setup_command(arguments: argparse.Namespace) -> None:
         data = _load_manifest_data(manifest_path) if manifest_path.is_file() else {}
         _refresh_manifest_data(data, arguments, device, manifest_path)
         _write_manifest(manifest_path, data)
-        print(f"manifest: {manifest_path}", file=sys.stderr)
     elif not manifest_path.is_file():
         raise SafetyError(
             f"manifest is not readable: {manifest_path}; supply --koreader "
@@ -311,7 +309,6 @@ def _refresh_manifest_data(
             arguments.scp,
             arguments.sftp_server,
             arguments.rsync,
-            arguments.launch_mode,
         )
     )
     if build_requested:

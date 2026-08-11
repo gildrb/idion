@@ -6,6 +6,11 @@ from .model import Device
 from .safety import SafetyError
 
 
+def is_bare_profile_name(profile: str | Path) -> bool:
+    value = str(profile)
+    return len(Path(value).parts) == 1 and not value.startswith((".", "~"))
+
+
 def adapter_resource(device: Device, relative: str, *, fallback: bool = True) -> Path:
     adapter_root = device.source.parent
     candidate = adapter_root / relative
@@ -29,6 +34,6 @@ def settings_profile(device: Device, profile: Path) -> Path:
     profile = profile.expanduser()
     if profile.is_absolute():
         return profile
-    if len(profile.parts) == 1:
+    if is_bare_profile_name(profile):
         return adapter_resource(device, f"profiles/{profile.name}")
     return profile.resolve()
